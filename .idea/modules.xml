@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/mrss.iml" filepath="$PROJECT_DIR$/mrss.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mrss-api/mrss-api.iml" filepath="$PROJECT_DIR$/mrss-api/mrss-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/web-admin/web-admin.iml" filepath="$PROJECT_DIR$/web-admin/web-admin.iml" />
+    </modules>
+  </component>
+</project>
