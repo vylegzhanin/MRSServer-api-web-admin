@@ -10,6 +10,8 @@ import java.time.temporal.ChronoUnit
 import java.util.*
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
+import javax.json.JsonObject
+import javax.json.JsonValue
 import kotlin.concurrent.withLock
 
 /**
@@ -22,6 +24,20 @@ object MRSS {
             .url("$basePath$path")
             .apply(builder)
             .build())
+
+    fun call(function: String, version: String, request: JsonObject = json {}): JsonObject = newRequest(
+            "/api/$function/$version") { method("POST", request.toJsonRequest()) }
+            .execute()
+            .use { response ->
+                if (response.code() != 200) throw CallException(
+                        "Invalid response code ${response.code()}: ${response.message()}")
+                val json = response.toJsonObject()
+                if (json["success"] == JsonValue.TRUE)
+                    json["outputParameters"] as? JsonObject ?: throw CallException(
+                        "outputParameters not found")
+                else
+                    throw CallException(json.getString("errorMessage", "Invalid response"))
+            }
 
     private val okHttpClient = OkHttpClient()
     private val basePath: String get() = configuration.getProperty("basePath", "http://localhost:12800")
