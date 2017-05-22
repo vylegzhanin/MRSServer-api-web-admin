@@ -1,8 +1,11 @@
 package com.simagis.mrss.admin.web
 
 import com.simagis.mrss.MRSS
-import io.swagger.client.Pair
+import com.simagis.mrss.ppString
+import com.simagis.mrss.toJsonArray
+import com.simagis.mrss.toJsonObject
 import java.io.IOException
+import javax.json.JsonObject
 import javax.servlet.ServletException
 import javax.servlet.annotation.WebServlet
 import javax.servlet.http.HttpServlet
@@ -29,30 +32,27 @@ class ServicesServlet : HttpServlet() {
     private fun printList(response: HttpServletResponse) {
         val writer = response.writer
         writer.println("<pre>")
-        MRSS.servicesManagementAPIsApi.allWebServices.forEach {
-            writer.println(it)
-            val href = """/services/${it.name}/${it.version}/swagger.json"""
-            writer.println("""<a href="$href" target=_blank>$href</a>""")
-            writer.println("<hr>")
+        MRSS.newRequest("/services").execute().run {
+            body()?.string()?.toJsonArray()?.forEach {
+                if (it is JsonObject) {
+                    writer.println(it.ppString())
+                    val href = """/services/${it.getString("name")}/${it.getString("version")}/swagger.json"""
+                    writer.println("""<a href="$href" target=_blank>$href</a>""")
+                    writer.println("<hr>")
+                }
+            }
+
         }
         writer.println("</pre>")
     }
 
     private fun printSwaggerJson(response: HttpServletResponse, name: String, version: String) {
-        val apiClient = MRSS.apiClient
-        val call = apiClient.buildCall(
-                "/api/$name/$version/swagger.json",
-                "GET",
-                emptyList<Pair>(),
-                null,
-                emptyMap<String, String>(),
-                emptyMap<String, Any>(),
-                arrayOfNulls<String>(0),
-                null
-        )
-        response.contentType = "text/plain"
-        val data = apiClient.execute<String>(call, String::class.java).data
-        response.writer.print(data)
+        MRSS.newRequest("/api/$name/$version/swagger.json").execute().run {
+            response.contentType = "text/plain"
+            body()?.string()?.toJsonObject()?.ppString()?.let {
+                response.writer.print(it)
+            }
+        }
     }
 
 }
