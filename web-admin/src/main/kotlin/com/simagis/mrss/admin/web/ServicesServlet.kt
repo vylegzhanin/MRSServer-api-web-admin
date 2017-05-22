@@ -32,8 +32,8 @@ class ServicesServlet : HttpServlet() {
     private fun printList(response: HttpServletResponse) {
         val writer = response.writer
         writer.println("<pre>")
-        MRSS.newRequest("/services").execute().run {
-            body()?.string()?.toJsonArray()?.forEach {
+        MRSS.newRequest("/services").execute().use { it ->
+            it.body()?.string()?.toJsonArray()?.forEach {
                 if (it is JsonObject) {
                     writer.println(it.ppString())
                     val href = """/services/${it.getString("name")}/${it.getString("version")}/swagger.json"""
@@ -47,9 +47,9 @@ class ServicesServlet : HttpServlet() {
     }
 
     private fun printSwaggerJson(response: HttpServletResponse, name: String, version: String) {
-        MRSS.newRequest("/api/$name/$version/swagger.json").execute().run {
+        MRSS.newRequest("/api/$name/$version/swagger.json").execute().use {
             response.contentType = "text/plain"
-            body()?.string()?.toJsonObject()?.ppString()?.let {
+            it.body()?.string()?.toJsonObject()?.ppString()?.let {
                 response.writer.print(it)
             }
         }

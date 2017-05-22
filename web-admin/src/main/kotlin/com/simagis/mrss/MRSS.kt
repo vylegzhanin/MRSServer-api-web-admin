@@ -40,14 +40,14 @@ object MRSS {
                         add("password", password)
                     }.toJsonRequest())
                     .build()
-            okHttpClient.newCall(request).execute().run {
+            okHttpClient.newCall(request).execute().use { response ->
                 when {
-                    code() == 200 -> body()?.string()?.toJsonObject()?.run {
+                    response.code() == 200 -> response.body()?.string()?.toJsonObject()?.run {
                         accessToken_ = getString("access_token")
                         val expiresIn = getJsonNumber("expires_in").longValue()
                         accessTokenExpiresOnMs_ = now().plus(expiresIn - 20, ChronoUnit.SECONDS).toEpochMilli()
                     }
-                    else -> throw IOException(message())
+                    else -> throw IOException(response.message())
                 }
             }
         }
