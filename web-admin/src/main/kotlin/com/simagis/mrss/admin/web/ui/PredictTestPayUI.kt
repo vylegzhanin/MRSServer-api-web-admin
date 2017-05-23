@@ -7,9 +7,8 @@ import com.simagis.mrss.json
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.event.ShortcutAction
-import com.vaadin.server.Sizeable
-import com.vaadin.server.VaadinRequest
-import com.vaadin.server.VaadinServlet
+import com.vaadin.icons.VaadinIcons
+import com.vaadin.server.*
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
 import java.util.*
@@ -66,21 +65,7 @@ class PredictTestPayUI : UI() {
         addClickListener {
             try {
                 val result = call_PredictTestPay()
-                splitPanel.secondComponent = VerticalLayout().apply {
-                    addComponent(HorizontalLayout().apply {
-                        addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
-                        setMargin(false)
-                        result.scalars().forEach { key, value ->
-                            addComponent(VerticalLayout().apply {
-                                setMargin(false)
-                                addComponent(TextField(key, value.toString()).apply {
-                                    isReadOnly = true
-                                })
-                            })
-                        }
-                    })
-                    addComponent(result.toGrid())
-                }
+                splitPanel.secondComponent = result.asComponent()
             } catch(e: Throwable) {
                 showError(e, "Prediction Error: %s")
             }
@@ -149,6 +134,51 @@ class PredictTestPayUI : UI() {
         grid.heightByRows = details.size.toDouble()
         detailsKeys().forEach { key ->
             grid.addColumn({ details: Details -> details[key] }).caption = key
+        }
+    }
+
+    private fun Result.asComponent() = VerticalLayout().apply {
+        addComponent(HorizontalLayout().apply {
+            addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
+            setMargin(false)
+            scalars().forEach { entry ->
+                addComponent(VerticalLayout().apply {
+                    setMargin(false)
+                    addComponent(when (entry.key) {
+                        "NeedABN" -> entry.asNeedABN()
+                        else -> entry.asSimpleField()
+                    })
+                })
+            }
+        })
+        addComponent(toGrid())
+    }
+
+    private fun ScalarEntry.asSimpleField() = TextField(key, value.toString()).apply { isReadOnly = true }
+
+    private fun ScalarEntry.asNeedABN() = HorizontalLayout().apply {
+        caption = key
+        val value = this@asNeedABN.value
+        val item = when (value) {
+            is Number -> if (value.toDouble() > 0.9) "Yes" else "No"
+            else -> "Undefined"
+        }
+        addComponent(RadioButtonGroup<String>().apply {
+            setItems(item)
+            setItemCaptionGenerator { it }
+            setSelectedItem(item)
+            addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
+        })
+        if (item == "Yes") {
+            val link = Link().apply {
+                isCaptionAsHtml = true
+                caption = VaadinIcons.EXTERNAL_LINK.html
+                resource = ExternalResource(VaadinServlet.getCurrent().servletContext
+                        .contextPath + "/templates/abn_template.pdf")
+                targetName = "_blank"
+            }
+            addComponent(link)
+            setComponentAlignment(link, Alignment.MIDDLE_LEFT)
         }
     }
 

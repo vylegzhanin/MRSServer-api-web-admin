@@ -35,6 +35,8 @@ class Result(val json: JsonObject) {
 
 typealias Details = Map<String, Any>
 
+typealias ScalarEntry = Map.Entry<String, Any>
+
 fun <T> JsonObject.toItemList(vararg keyNames: String, builder: (List<JsonValue?>) -> T): List<T> {
     val arrays: Map<String, JsonArray> = mutableMapOf<String, JsonArray>().apply {
         keyNames.forEach { this[it] = getJsonArray(it) }
