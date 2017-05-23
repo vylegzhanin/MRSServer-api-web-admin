@@ -6,10 +6,12 @@ import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
+import com.vaadin.event.ShortcutAction
 import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
+import com.vaadin.ui.themes.ValoTheme
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -23,7 +25,7 @@ import javax.servlet.annotation.WebServlet
 @Title("Predict Test Pay")
 class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
-    private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText) }
+    private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
 
     private val testF = ComboBox<Test>("Test Name").apply {
         setItemCaptionGenerator { "${it.id}: ${it.name}" }
@@ -48,11 +50,44 @@ class PredictTestPayUI : UI() {
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
     }
 
-    override fun init(request: VaadinRequest) {
-        content = HorizontalSplitPanel().apply {
-            splitPosition = 25f
-            firstComponent =  VerticalLayout(testF, payerF, filingCodeF)
+    private val dxF = TextField("DX", "Z0000")
+
+    private val genderF = RadioButtonGroup<Gender>("Gender", Gender.values().toList()).apply {
+        setItemCaptionGenerator { it.name }
+        setSelectedItem(Gender.M)
+        addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
+    }
+
+    private val ageF = TextField("Age", "60")
+
+    private val predictBtn: Button = Button("Predict").apply {
+        addStyleName(ValoTheme.BUTTON_PRIMARY)
+        setClickShortcut(ShortcutAction.KeyCode.ENTER)
+        addClickListener {
+            try {
+                val result = call_PredictTestPay()
+                splitPanel.secondComponent = VerticalLayout().apply {
+                    result.scalars().forEach { key, value ->
+                        addComponent(TextField(key, value.toString()).apply {
+                            setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                            isReadOnly = true
+                        })
+                    }
+                    addComponent(result.toGrid())
+                }
+            } catch(e: Throwable) {
+                showError(e, "Prediction Error: %s")
+            }
         }
+    }
+
+    private val splitPanel = HorizontalSplitPanel().apply {
+        splitPosition = 25f
+        firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF, predictBtn)
+    }
+
+    override fun init(request: VaadinRequest) {
+        content = splitPanel
 
         try {
             testF.setItems(contains, call_ListTestNames())
@@ -91,6 +126,25 @@ class PredictTestPayUI : UI() {
             .toItemList("Payers") {
                 Payer(it.str(0))
             }
+
+    private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", "0.1", json {
+        add("in_prn", payerF.value.name)
+        add("in_test", testF.value.id)
+        add("in_dx", dxF.value)
+        add("in_ptnG", genderF.value.name)
+        add("in_ptnAge", ageF.value.toInt())
+        add("in_fCode", filingCodeF.value.code)
+    }))
+
+    private fun Result.toGrid() = Grid<Details>("Details").also { grid ->
+        grid.setWidth(100f, Sizeable.Unit.PERCENTAGE)
+        val details = details()
+        grid.setItems(details)
+        grid.heightByRows = details.size.toDouble()
+        detailsKeys().forEach { key ->
+            grid.addColumn({ details: Details -> details[key] }).caption = key
+        }
+    }
 
     @WebServlet(urlPatterns = arrayOf("/ptp/*", "/VAADIN/*"), name = "PTP-UI-Servlet", asyncSupported = true)
     @VaadinServletConfiguration(ui = PredictTestPayUI::class, productionMode = false)

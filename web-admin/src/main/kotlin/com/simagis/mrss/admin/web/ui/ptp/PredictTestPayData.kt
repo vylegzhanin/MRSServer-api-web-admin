@@ -1,9 +1,6 @@
 package com.simagis.mrss.admin.web.ui.ptp
 
-import javax.json.JsonArray
-import javax.json.JsonObject
-import javax.json.JsonString
-import javax.json.JsonValue
+import javax.json.*
 
 /**
  * <p>
@@ -12,6 +9,31 @@ import javax.json.JsonValue
 data class Test(val id: String, val name: String)
 data class Payer(val name: String)
 data class FilingCode(val code: String, val description: String)
+enum class Gender {M, F, }
+
+class Result(val json: JsonObject) {
+
+    fun scalars(): Map<String, Any> = mutableMapOf<String, Any>().apply {
+        json.keys.forEach { key ->
+            json[key].let { if (it.isScalar) this[key] = it.scalar() }
+        }
+    }
+
+    fun detailsKeys(): List<String> = (json["details"] as? JsonObject)?.keys?.toList() ?: emptyList()
+
+    fun details(): List<Details> = (json["details"] as? JsonObject)?.let { detailsJson ->
+        val keyNames: Array<String> = detailsJson.keys.toTypedArray()
+        detailsJson.toItemList(*keyNames) {
+            mutableMapOf<String, Any>().apply {
+                keyNames.forEachIndexed { index, name ->
+                    this[name] = it.scalar(index)
+                }
+            }
+        }
+    } ?: emptyList()
+}
+
+typealias Details = Map<String, Any>
 
 fun <T> JsonObject.toItemList(vararg keyNames: String, builder: (List<JsonValue?>) -> T): List<T> {
     val arrays: Map<String, JsonArray> = mutableMapOf<String, JsonArray>().apply {
@@ -32,3 +54,19 @@ fun List<JsonValue?>.str(i: Int, def: String = ""): String {
         else -> value.toString()
     }
 }
+
+fun List<JsonValue?>.scalar(i: Int, def: Any = ""): Any = getOrNull(i).scalar(def)
+
+fun JsonValue?.scalar(def: Any = ""): Any = if (this == null) def else when {
+    this is JsonString -> string
+    this is JsonNumber -> if (isIntegral) longValue() else doubleValue()
+    valueType == JsonValue.ValueType.TRUE -> true
+    valueType == JsonValue.ValueType.FALSE -> false
+    else -> def
+}
+
+val JsonValue?.isScalar get() = if (this == null) false else
+    this is JsonString ||
+    this is JsonNumber ||
+    valueType == JsonValue.ValueType.TRUE ||
+    valueType == JsonValue.ValueType.FALSE
