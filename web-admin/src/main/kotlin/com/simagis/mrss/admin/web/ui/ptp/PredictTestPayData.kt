@@ -1,4 +1,4 @@
-package com.simagis.mrss.admin.web.ui.test
+package com.simagis.mrss.admin.web.ui.ptp
 
 import javax.json.JsonArray
 import javax.json.JsonObject
