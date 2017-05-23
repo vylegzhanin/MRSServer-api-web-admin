@@ -67,12 +67,18 @@ class PredictTestPayUI : UI() {
             try {
                 val result = call_PredictTestPay()
                 splitPanel.secondComponent = VerticalLayout().apply {
-                    result.scalars().forEach { key, value ->
-                        addComponent(TextField(key, value.toString()).apply {
-                            setWidth(100f, Sizeable.Unit.PERCENTAGE)
-                            isReadOnly = true
-                        })
-                    }
+                    addComponent(HorizontalLayout().apply {
+                        addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
+                        setMargin(false)
+                        result.scalars().forEach { key, value ->
+                            addComponent(VerticalLayout().apply {
+                                setMargin(false)
+                                addComponent(TextField(key, value.toString()).apply {
+                                    isReadOnly = true
+                                })
+                            })
+                        }
+                    })
                     addComponent(result.toGrid())
                 }
             } catch(e: Throwable) {
