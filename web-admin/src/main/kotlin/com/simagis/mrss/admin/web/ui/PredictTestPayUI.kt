@@ -24,7 +24,7 @@ import javax.servlet.annotation.WebServlet
  * <p>
  * Created by alexei.vylegzhanin@gmail.com on 5/23/2017.
  */
-@Title("Predict Test Pay")
+@Title("PayPredict API Demo App (API version 0.2 - Prototype)")
 class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
     private val apiVersion = "0.2"
@@ -82,7 +82,21 @@ class PredictTestPayUI : UI() {
     }
 
     override fun init(request: VaadinRequest) {
-        content = splitPanel
+        content = VerticalLayout().apply {
+            setSizeFull()
+            setMargin(false)
+            isSpacing = false
+            addComponent(HorizontalLayout().apply {
+                setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                addStyleName(ValoTheme.WINDOW_TOP_TOOLBAR)
+                addComponent(Label("PayPredict API Demo App (API version 0.2 - Prototype)").apply {
+                    addStyleName(ValoTheme.LABEL_COLORED)
+                    addStyleName(ValoTheme.LABEL_LARGE)
+                    addStyleName(ValoTheme.LABEL_BOLD)
+                })
+            })
+            addComponentsAndExpand(splitPanel)
+        }
 
         try {
             testF.setItems(contains, call_ListTestNames())
