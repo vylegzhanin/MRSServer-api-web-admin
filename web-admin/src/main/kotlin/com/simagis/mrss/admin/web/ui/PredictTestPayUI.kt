@@ -27,6 +27,7 @@ import javax.servlet.annotation.WebServlet
 @Title("Predict Test Pay")
 class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
+    private val apiVersion = "0.2"
     private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
 
     private val testF = ComboBox<Test>("Test Name").apply {
@@ -105,7 +106,7 @@ class PredictTestPayUI : UI() {
 
     private @Volatile var testMap: Map<String, Test> = emptyMap()
 
-    private fun call_ListTestNames(): List<Test> = (MRSS.call("ListTestNames", "0.1")["TestList"] as? JsonObject)
+    private fun call_ListTestNames(): List<Test> = (MRSS.call("ListTestNames", apiVersion)["TestList"] as? JsonObject)
             ?.toItemList("Test", "TestName") {
                 Test(it.str(0), it.str(1))
             }
@@ -115,19 +116,19 @@ class PredictTestPayUI : UI() {
                 }
             } ?: throw CallException("TestList not found")
 
-    private fun call_FilingCodes(): List<FilingCode> = (MRSS.call("FilingCodes", "0.1")["FilingCodes"] as? JsonObject)
+    private fun call_FilingCodes(): List<FilingCode> = (MRSS.call("FilingCodes", apiVersion)["FilingCodes"] as? JsonObject)
             ?.toItemList("Code", "Description") {
                 FilingCode(it.str(0), it.str(1))
             }
             ?: throw CallException("TestList not found")
 
-    private fun Test.call_ListPayers(): List<Payer> = MRSS.call("ListPayers", "0.1",
+    private fun Test.call_ListPayers(): List<Payer> = MRSS.call("ListPayers", apiVersion,
             json { add("Test", id) })
             .toItemList("Payers") {
                 Payer(it.str(0))
             }
 
-    private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", "0.1", json {
+    private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", apiVersion, json {
         add("in_prn", payerF.value.name)
         add("in_test", testF.value.id)
         add("in_dx", dxF.value)
