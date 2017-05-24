@@ -15,7 +15,6 @@ import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
 import java.util.*
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.logging.Level
 import java.util.logging.Logger
 import javax.json.JsonObject
@@ -48,22 +47,22 @@ class PredictTestPayUI : UI() {
         isEnabled = false
     }
 
-    private val filingCodeF = ComboBox<FilingCode>("Filing Code").apply {
+    private val filingCodeF = ComboBox<FilingCode>("Insurance Plan Type").apply {
         setItemCaptionGenerator { "${it.code}: ${it.description}" }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
     }
 
-    private val dxF = TextField("DX", "Z0000")
+    private val dxF = TextField("Diagnosis Code (ICD-10)", "Z0000")
 
-    private val genderF = RadioButtonGroup<Gender>("Gender", Gender.values().toList()).apply {
+    private val genderF = RadioButtonGroup<Gender>("Patient Gender", Gender.values().toList()).apply {
         setItemCaptionGenerator { it.name }
         setSelectedItem(Gender.M)
         addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
     }
 
-    private val ageF = TextField("Age", "60")
+    private val ageF = TextField("Patient Age", "60")
 
-    private val predictBtn: Button = Button("Predict").apply {
+    private val predictBtn: Button = Button("Predict Payment").apply {
         addStyleName(ValoTheme.BUTTON_PRIMARY)
         setClickShortcut(ShortcutAction.KeyCode.ENTER)
         addClickListener {
@@ -77,7 +76,7 @@ class PredictTestPayUI : UI() {
     }
 
     private val splitPanel = HorizontalSplitPanel().apply {
-        splitPosition = 25f
+        splitPosition = 35f
         firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF, predictBtn)
     }
 
@@ -104,7 +103,6 @@ class PredictTestPayUI : UI() {
                 Notification.Type.ERROR_MESSAGE)
     }
 
-    private val dataLock = ReentrantReadWriteLock()
     private @Volatile var testMap: Map<String, Test> = emptyMap()
 
     private fun call_ListTestNames(): List<Test> = (MRSS.call("ListTestNames", "0.1")["TestList"] as? JsonObject)
@@ -144,7 +142,9 @@ class PredictTestPayUI : UI() {
         grid.setItems(details)
         grid.heightByRows = details.size.toDouble()
         detailsKeys().forEach { key ->
-            grid.addColumn({ details: Details -> details[key] }).caption = key
+            grid.addColumn({ details: Details -> details[key] }).apply {
+                caption = key
+            }
         }
     }
 
@@ -165,10 +165,14 @@ class PredictTestPayUI : UI() {
         addComponent(toGrid())
     }
 
-    private fun ScalarEntry.asSimpleField() = TextField(key, value.toString()).apply { isReadOnly = true }
+    private fun ScalarEntry.asSimpleField() = TextField(when (key) {
+        "ExpectFee" -> "Expected Test Fee"
+        "StatValue" -> "Predicted Test Value"
+        else -> key
+    }, value.toString()).apply { isReadOnly = true }
 
     private fun ScalarEntry.asNeedABN(result: Result) = HorizontalLayout().apply {
-        caption = key
+        caption = "ABN Form Needed?"
         val value = this@asNeedABN.value
         val item = when (value) {
             is Number -> if (value.toDouble() > 0.9) "Yes" else "No"
@@ -183,7 +187,7 @@ class PredictTestPayUI : UI() {
         if (item == "Yes") {
             val link = Link().apply {
                 isCaptionAsHtml = true
-                caption = VaadinIcons.EXTERNAL_LINK.html
+                caption = VaadinIcons.EXTERNAL_LINK.html + " Open ABN Form"
                 targetName = "_blank"
                 resource = ExternalResource(VaadinServlet.getCurrent().servletContext
                         .contextPath + "/abn?id=${result.registerABNSessionId()}")

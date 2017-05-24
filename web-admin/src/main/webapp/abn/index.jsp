@@ -21,6 +21,30 @@
         body {
             font-family: Arial, sans-serif;
         }
+
+        .table100pc {
+            display: table;
+            width: 100%
+        }
+
+        .cell {
+            display: table-cell;
+        }
+
+        .cellU100pc {
+            display: table-cell;
+            width: 100%;
+            border-bottom: 1px solid black;
+        }
+
+        .value {
+            font-weight: bold;
+        }
+
+        .valueU {
+            font-weight: bold;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -38,32 +62,30 @@
 %>
 <% final ABN abn = getABN(request); %>
 <div style="margin: 0 auto; width: 9in">
-    <h3>A. Notifier: BioReference Laboratories Inc.</h3>
-    <h3>B. Patient Name:</h3>
-    <h3>C. Identification Number:</h3>
+    <h3>Notifier: BioReference Laboratories Inc.</h3>
+    <h3 class="table100pc">
+        <span class="cell">PatientName:</span>
+        <span class="cellU100pc"></span></h3>
+    <h3 class="table100pc">
+        <span class="cell">Identification&nbsp;Number:</span>
+        <span class="cellU100pc"></span></h3>
     <hr>
     <div style="text-align: center;"><h1>Advance Beneficiary Notice of Noncoverage (ABN)</h1></div>
 
-    <strong>NOTE:</strong> If Medicare doesn’t pay for <strong><u><%=abn.getTestText() %>
-</u>
-</strong> below, you may have to pay.
-    Medicare does not pay for everything, even some care that you or your health care provider have
-    good reason to think you need. We expect Medicare may not pay for the <strong><u><%=abn.getTestText() %>
-</u>
-</strong> below.
+    <strong>NOTE:</strong> If Payer doesn't pay for diagnostic test: <span class="valueU"><%=abn.getTestText() %></span>
+    below, you may have to pay. Payer does not pay for everything, even some care that you or your health care
+    provider have good reason to think you need. We expect Payer may not pay for the diagnostic test: <span
+        class="valueU"><%=abn.getTestText() %></span> below.
     <table width="100%" border="1">
         <tr>
-            <td bgcolor="#d3d3d3"><strong>D.</strong></td>
-            <td bgcolor="#d3d3d3"><strong>E. Reason Medicare May Not Pay:</strong></td>
-            <td bgcolor="#d3d3d3"><strong>F. Estimated Cost</strong></td>
+            <td bgcolor="#d3d3d3"><strong>Diagnostic Test</strong></td>
+            <td bgcolor="#d3d3d3"><strong>Reason Payer May Not Pay for the test or its components:</strong></td>
+            <td bgcolor="#d3d3d3"><strong>Estimated Cost</strong></td>
         </tr>
         <tr>
-            <td><strong><%=abn.getTestText() %>
-            </strong></td>
-            <td><strong><%=abn.getReasonText() %>
-            </strong></td>
-            <td><strong><%=abn.getTestExpectFee() %>
-            </strong></td>
+            <td><span class="value"><%=abn.getTestText() %></span></td>
+            <td><span class="value"><%=abn.getReasonText() %></span></td>
+            <td><span class="value"><%=abn.getTestExpectFee() %></span></td>
         </tr>
     </table>
 
@@ -71,11 +93,10 @@
     <ul>
         <li>Read this notice, so you can make an informed decision about your care.</li>
         <li>Ask us any questions that you may have after you finish reading.</li>
-        <li>Choose an option below about whether to receive the <strong><u><%=abn.getTestText() %>
-        </u>
-        </strong> listed above.<br>
-            <strong>Note:</strong> If you choose Option 1 or 2, we may help you to use any other insurance
-            that you might have, but Medicare cannot require us to do this.
+        <li>Choose an option below about whether to receive the diagnostic test: <span
+                class="valueU"><%=abn.getTestText() %></span> listed above.<br>
+            <strong>Note:</strong> If you choose Option 1 or 2, we may help you to use any other insurance that you
+            might have, but Payer cannot require us to do this.
         </li>
     </ul>
 
@@ -86,38 +107,34 @@
         </tr>
         <tr>
             <td>
-                <strong><%=optionBox%> OPTION 1.</strong> I want the <strong><u><%=abn.getTestText() %>
-            </u>
-            </strong> listed above.
-                You may ask to be paid now, but I also want Medicare billed for an official decision on payment, which
-                is sent to me on a Medicare Summary Notice (MSN). I understand that if Medicare doesn’t pay, I am
-                responsible for payment, but <strong>I can appeal to Medicare</strong> by following the directions on
-                the MSN. If Medicare does pay, you will refund any payments I made to you, less co-pays or
-                deductibles.<br><br>
+                <strong><%=optionBox%> OPTION 1.</strong> I want the diagnostic test: <span
+                    class="valueU"><%=abn.getTestText() %></span> listed above. You may ask to be paid now, but I also
+                want Payer billed for an official decision on payment, which is sent to me on a Payer Summary
+                Notice (MSN). I understand that if Payer doesn't pay, I am responsible for payment, but <strong>I can
+                appeal to Payer</strong> by following the directions on the MSN. If Payer does pay, you will refund
+                any payments I made to you, less co-pays or deductibles.<br><br>
 
-                <strong><%=optionBox%> OPTION 2.</strong> I want the <strong><u><%=abn.getTestText() %>
-            </u>
-            </strong> listed above, but do not bill
-                Medicare. You may ask to be paid now as I am responsible for payment. <strong>I cannot appeal if
-                Medicare is not billed.</strong><br><br>
+                <strong><%=optionBox%> OPTION 2.</strong> I want the diagnostic test: <span
+                    class="valueU"><%=abn.getTestText() %></span> listed above, but do not bill Payer. You may ask to be
+                paid now as I am responsible for payment. <strong>I cannot appeal if Payer is not
+                billed.</strong><br><br>
 
-                <strong><%=optionBox%> OPTION 3.</strong> I don’t want the <strong><u><%=abn.getTestText() %>
-            </u>
-            </strong> listed above. I understand with this choice I am not responsible for payment, and <strong>I cannot
-                appeal to see if Medicare would pay.</strong>
+                <strong><%=optionBox%> OPTION 3.</strong> I don’t want the diagnostic test: <span
+                    class="valueU"><%=abn.getTestText() %></span> listed above. I understand with this choice I am not
+                responsible for payment, and <strong>I cannot appeal to see if Payer would pay.</strong>
             </td>
         </tr>
     </table>
 
-    <h2>H. Additional Information:</h2>
-    <strong>This notice gives our opinion, not an official Medicare decision.</strong> If you have other questions
-    on this notice or Medicare billing, call <strong>1-800-MEDICARE</strong> (1-800-633-4227/<strong>TTY</strong>:
+    <h2>Additional Information:</h2>
+    <strong>This notice gives our opinion, not an official Payer decision.</strong> If you have other questions on this
+    notice or Payer billing, call <strong>1-800-MEDICARE</strong> (1-800-633-4227/<strong>TTY</strong>:
     1-877-486-2048). Signing below means that you have received and understand this notice. You also receive a copy.
 
     <table width="100%" border="1">
         <tr>
-            <td width="50%"><strong>I. Signature:<br><br></strong></td>
-            <td width="50%"><strong>J. Date:<br><br></strong></td>
+            <td width="50%"><strong>Patient Signature:<br><br></strong></td>
+            <td width="50%"><strong>Date:<br><br></strong></td>
         </tr>
     </table>
 
