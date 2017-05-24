@@ -8,10 +8,14 @@ import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.event.ShortcutAction
 import com.vaadin.icons.VaadinIcons
-import com.vaadin.server.*
+import com.vaadin.server.ExternalResource
+import com.vaadin.server.Sizeable
+import com.vaadin.server.VaadinRequest
+import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
 import com.vaadin.ui.themes.ValoTheme
 import java.util.*
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.logging.Level
 import java.util.logging.Logger
 import javax.json.JsonObject
@@ -100,11 +104,18 @@ class PredictTestPayUI : UI() {
                 Notification.Type.ERROR_MESSAGE)
     }
 
+    private val dataLock = ReentrantReadWriteLock()
+    private @Volatile var testMap: Map<String, Test> = emptyMap()
+
     private fun call_ListTestNames(): List<Test> = (MRSS.call("ListTestNames", "0.1")["TestList"] as? JsonObject)
             ?.toItemList("Test", "TestName") {
                 Test(it.str(0), it.str(1))
             }
-            ?: throw CallException("TestList not found")
+            ?.also { list ->
+                testMap = mutableMapOf<String, Test>().apply {
+                    list.forEach { this[it.id] = it }
+                }
+            } ?: throw CallException("TestList not found")
 
     private fun call_FilingCodes(): List<FilingCode> = (MRSS.call("FilingCodes", "0.1")["FilingCodes"] as? JsonObject)
             ?.toItemList("Code", "Description") {
@@ -145,7 +156,7 @@ class PredictTestPayUI : UI() {
                 addComponent(VerticalLayout().apply {
                     setMargin(false)
                     addComponent(when (entry.key) {
-                        "NeedABN" -> entry.asNeedABN()
+                        "NeedABN" -> entry.asNeedABN(this@asComponent)
                         else -> entry.asSimpleField()
                     })
                 })
@@ -156,7 +167,7 @@ class PredictTestPayUI : UI() {
 
     private fun ScalarEntry.asSimpleField() = TextField(key, value.toString()).apply { isReadOnly = true }
 
-    private fun ScalarEntry.asNeedABN() = HorizontalLayout().apply {
+    private fun ScalarEntry.asNeedABN(result: Result) = HorizontalLayout().apply {
         caption = key
         val value = this@asNeedABN.value
         val item = when (value) {
@@ -173,13 +184,35 @@ class PredictTestPayUI : UI() {
             val link = Link().apply {
                 isCaptionAsHtml = true
                 caption = VaadinIcons.EXTERNAL_LINK.html
-                resource = ExternalResource(VaadinServlet.getCurrent().servletContext
-                        .contextPath + "/templates/abn_template.pdf")
                 targetName = "_blank"
+                resource = ExternalResource(VaadinServlet.getCurrent().servletContext
+                        .contextPath + "/abn?id=${result.registerABNSessionId()}")
             }
             addComponent(link)
             setComponentAlignment(link, Alignment.MIDDLE_LEFT)
         }
+    }
+
+    private fun Result.registerABNSessionId(): String {
+        val uuid = UUID.randomUUID().toString()
+        val scalars = scalars()
+        fun esc(vararg scalar: Any?): String {
+            return scalar
+                    .filter { it != null }
+                    .joinToString(separator = "")
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+        }
+
+        val test = scalars["Test"]?.let { testMap[it] }
+        val reasonText = details().map { esc(it["Reason"]) }.joinToString(separator = ", ")
+        ABNs[uuid] = ABN(
+                testText = esc(test?.id, ", ", test?.name),
+                testExpectFee = esc("$", scalars["ExpectFee"]),
+                reasonText = reasonText
+        )
+        return uuid
     }
 
     @WebServlet(urlPatterns = arrayOf("/ptp/*", "/VAADIN/*"), name = "PTP-UI-Servlet", asyncSupported = true)
