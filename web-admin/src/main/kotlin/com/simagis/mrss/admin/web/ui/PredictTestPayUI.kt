@@ -211,7 +211,7 @@ class PredictTestPayUI : UI() {
         }
 
         val test = scalars["Test"]?.let { testMap[it] }
-        val reasonText = details().map { esc(it["Reason"]) }.joinToString(separator = ", ")
+        val reasonText = details().map { esc(it["Reason"]) }.distinct().joinToString(separator = ", ")
         ABNs[uuid] = ABN(
                 testText = esc(test?.id, ", ", test?.name),
                 testExpectFee = esc("$", scalars["ExpectFee"]),
