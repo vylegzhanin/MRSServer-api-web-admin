@@ -4,6 +4,8 @@ import okhttp3.MediaType
 import okhttp3.RequestBody
 import okhttp3.Response
 import java.io.StringWriter
+import java.math.BigDecimal
+import java.math.BigInteger
 import javax.json.*
 import javax.json.stream.JsonGenerator
 
@@ -18,6 +20,22 @@ fun json(builder: JsonObjectBuilder.() -> Unit): JsonObject = Json
         .createObjectBuilder()
         .apply(builder)
         .build()
+
+operator fun JsonObjectBuilder.set(key: String, value: Any?) {
+    when (value) {
+        null -> add(key, JsonValue.NULL)
+        is Boolean -> add(key, value)
+        is String -> add(key, value)
+        is Int -> add(key, value)
+        is Long -> add(key, value)
+        is Double -> add(key, value)
+        is JsonValue -> add(key, value)
+        is BigDecimal -> add(key, value)
+        is BigInteger -> add(key, value)
+        is JsonObjectBuilder -> add(key, value)
+        is JsonArrayBuilder -> add(key, value)
+    }
+}
 
 fun array(builder: JsonArrayBuilder.() -> Unit): JsonArray = Json
         .createArrayBuilder()

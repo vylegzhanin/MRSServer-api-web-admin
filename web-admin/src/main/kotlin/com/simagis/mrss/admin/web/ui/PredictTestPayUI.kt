@@ -4,6 +4,7 @@ import com.simagis.mrss.CallException
 import com.simagis.mrss.MRSS
 import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
+import com.simagis.mrss.set
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.event.ShortcutAction
@@ -31,8 +32,8 @@ class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
     private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
 
-    private val testF = ComboBox<Test>("Test Name").apply {
-        setItemCaptionGenerator { "${it.id}: ${it.name}" }
+    private val testF = ComboBox<Test?>("Test Name").apply {
+        setItemCaptionGenerator { it?.let { "${it.id}: ${it.name}" } }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
         isEnabled = false
         addSelectionListener {
@@ -43,21 +44,21 @@ class PredictTestPayUI : UI() {
         }
     }
 
-    private val payerF: ComboBox<Payer> = ComboBox<Payer>("Payer").apply {
-        setItemCaptionGenerator { it.name }
+    private val payerF = ComboBox<Payer?>("Payer").apply {
+        setItemCaptionGenerator { it?.name }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
         isEnabled = false
     }
 
-    private val filingCodeF = ComboBox<FilingCode>("Insurance Plan Type").apply {
-        setItemCaptionGenerator { "${it.code}: ${it.description}" }
+    private val filingCodeF = ComboBox<FilingCode?>("Insurance Plan Type").apply {
+        setItemCaptionGenerator { it?.let { "${it.code}: ${it.description}" } }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
     }
 
     private val dxF = TextField("Diagnosis Code (ICD-10)", "Z0000")
 
-    private val genderF = RadioButtonGroup<Gender>("Patient Gender", Gender.values().toList()).apply {
-        setItemCaptionGenerator { it.name }
+    private val genderF = RadioButtonGroup<Gender?>("Patient Gender", Gender.values().toList()).apply {
+        setItemCaptionGenerator { it?.name }
         setSelectedItem(Gender.M)
         addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
     }
@@ -144,12 +145,12 @@ class PredictTestPayUI : UI() {
             }
 
     private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", apiVersion, json {
-        add("in_prn", payerF.value.name)
-        add("in_test", testF.value.id)
-        add("in_dx", dxF.value)
-        add("in_ptnG", genderF.value.name)
-        add("in_ptnAge", ageF.value.toInt())
-        add("in_fCode", filingCodeF.value.code)
+        this["in_prn"] = payerF.value?.name
+        this["in_test"] = testF.value?.id
+        this["in_dx"] = dxF.value
+        this["in_ptnG"] = genderF.value?.name
+        this["in_ptnAge"] = ageF.value.toInt()
+        this["in_fCode"] = filingCodeF.value?.code
     }))
 
     private fun Result.toGrid() = Grid<Details>("Details").also { grid ->

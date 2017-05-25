@@ -33,7 +33,7 @@ object MRSS {
                     response.request().run {
                         stringBuilder
                                 .append('\n').append("request: ").append(method()).append(' ').append(url())
-                                .append('\n').append(request)
+                                .append('\n').append(request.ppString())
                     }
                 }.toString()
 
