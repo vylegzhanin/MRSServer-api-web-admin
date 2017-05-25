@@ -29,14 +29,22 @@ object MRSS {
             "/api/$function/$version") { method("POST", request.toJsonRequest()) }
             .execute()
             .use { response ->
+                fun String.withDetails(): String = StringBuilder(this).also { stringBuilder ->
+                    response.request().run {
+                        stringBuilder
+                                .append('\n').append("request: ").append(method()).append(' ').append(url())
+                                .append('\n').append(request)
+                    }
+                }.toString()
+
                 if (response.code() != 200) throw CallException(
-                        "Invalid response code ${response.code()}: ${response.message()}")
+                        "Invalid response code ${response.code()}: ${response.message()}".withDetails())
                 val json = response.toJsonObject()
                 if (json["success"] == JsonValue.TRUE)
                     json["outputParameters"] as? JsonObject ?: throw CallException(
-                        "outputParameters not found")
+                        "outputParameters not found".withDetails())
                 else
-                    throw CallException(json.getString("errorMessage", "Invalid response"))
+                    throw CallException(json.getString("errorMessage", "Invalid response".withDetails()))
             }
 
     private val okHttpClient = OkHttpClient()

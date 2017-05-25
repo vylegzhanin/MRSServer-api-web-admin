@@ -9,6 +9,9 @@ import kotlin.concurrent.write
  * <p>
  * Created by alexei.vylegzhanin@gmail.com on 5/23/2017.
  */
+
+const val apiVersion = "0.2"
+
 data class Test(val id: String, val name: String)
 data class Payer(val name: String)
 data class FilingCode(val code: String, val description: String)

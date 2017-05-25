@@ -24,10 +24,11 @@ import javax.servlet.annotation.WebServlet
  * <p>
  * Created by alexei.vylegzhanin@gmail.com on 5/23/2017.
  */
-@Title("PayPredict API Demo App (API version 0.2 - Prototype)")
+const val appCaption = "PayPredict API Demo App (API version $apiVersion - Prototype)"
+
+@Title(appCaption)
 class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
-    private val apiVersion = "0.2"
     private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
 
     private val testF = ComboBox<Test>("Test Name").apply {
@@ -89,7 +90,7 @@ class PredictTestPayUI : UI() {
             addComponent(HorizontalLayout().apply {
                 setWidth(100f, Sizeable.Unit.PERCENTAGE)
                 addStyleName(ValoTheme.WINDOW_TOP_TOOLBAR)
-                addComponent(Label("PayPredict API Demo App (API version 0.2 - Prototype)").apply {
+                addComponent(Label(appCaption).apply {
                     addStyleName(ValoTheme.LABEL_COLORED)
                     addStyleName(ValoTheme.LABEL_LARGE)
                     addStyleName(ValoTheme.LABEL_BOLD)
@@ -238,4 +239,3 @@ class PredictTestPayUI : UI() {
     @VaadinServletConfiguration(ui = PredictTestPayUI::class, productionMode = false)
     class UIServlet : VaadinServlet()
 }
-
