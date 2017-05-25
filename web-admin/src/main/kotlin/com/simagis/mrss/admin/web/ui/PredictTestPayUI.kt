@@ -32,7 +32,7 @@ class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
     private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
 
-    private val testF = ComboBox<Test?>("Test Name").apply {
+    private val testF: ComboBox<Test?> = ComboBox<Test?>("Test Name").apply {
         setItemCaptionGenerator { it?.let { "${it.id}: ${it.name}" } }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
         isEnabled = false
@@ -41,18 +41,32 @@ class PredictTestPayUI : UI() {
             payerF.clear()
             payerF.isEnabled = test != null
             payerF.setItems(contains, test?.call_ListPayers() ?: emptyList())
+
+            filingCodeF.clear()
+            filingCodeF.isEnabled = false
         }
     }
 
-    private val payerF = ComboBox<Payer?>("Payer").apply {
+    private val payerF: ComboBox<Payer?> = ComboBox<Payer?>("Payer").apply {
         setItemCaptionGenerator { it?.name }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
         isEnabled = false
+        addSelectionListener {
+            val payer: Payer? = it.selectedItem.orElse(null)
+            filingCodeF.clear()
+            filingCodeF.isEnabled = payer != null
+
+            val test = testF.value
+            if (payer != null && test != null) {
+                filingCodeF.setItems(contains, (test to payer).call_FilingCodes())
+            }
+        }
     }
 
-    private val filingCodeF = ComboBox<FilingCode?>("Insurance Plan Type").apply {
+    private val filingCodeF: ComboBox<FilingCode?> = ComboBox<FilingCode?>("Insurance Plan Type").apply {
         setItemCaptionGenerator { it?.let { "${it.code}: ${it.description}" } }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
+        isEnabled = false
     }
 
     private val dxF = TextField("Diagnosis Code (ICD-10)", "Z0000")
@@ -103,7 +117,6 @@ class PredictTestPayUI : UI() {
         try {
             testF.setItems(contains, call_ListTestNames())
             testF.isEnabled = true
-            filingCodeF.setItems(contains, call_FilingCodes())
         } catch(e: Throwable) {
             showError(e, "Prediction Server Error: %s")
         }
@@ -130,13 +143,17 @@ class PredictTestPayUI : UI() {
                 testMap = mutableMapOf<String, Test>().apply {
                     list.forEach { this[it.id] = it }
                 }
-            } ?: throw CallException("TestList not found")
+            } ?: throw CallException("TestList not found in response")
 
-    private fun call_FilingCodes(): List<FilingCode> = (MRSS.call("FilingCodes", apiVersion)["FilingCodes"] as? JsonObject)
+    private fun Pair<Test, Payer>.call_FilingCodes(): List<FilingCode> = (MRSS.call("FilingCodes", apiVersion,
+            json {
+                this["Test"] = first.id
+                this["Payer"] = second.name
+            })["FilingCodes"] as? JsonObject)
             ?.toItemList("Code", "Description") {
                 FilingCode(it.str(0), it.str(1))
             }
-            ?: throw CallException("TestList not found")
+            ?: throw CallException("FilingCodes not found in response")
 
     private fun Test.call_ListPayers(): List<Payer> = MRSS.call("ListPayers", apiVersion,
             json { add("Test", id) })

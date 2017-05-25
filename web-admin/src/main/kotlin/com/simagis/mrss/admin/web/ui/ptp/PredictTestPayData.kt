@@ -10,7 +10,7 @@ import kotlin.concurrent.write
  * Created by alexei.vylegzhanin@gmail.com on 5/23/2017.
  */
 
-const val apiVersion = "0.2"
+const val apiVersion = "0.3"
 
 data class Test(val id: String, val name: String)
 data class Payer(val name: String)
