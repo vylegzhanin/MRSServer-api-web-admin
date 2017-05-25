@@ -25,9 +25,9 @@ class Result(val json: JsonObject) {
         }
     }
 
-    fun detailsKeys(): List<String> = (json["details"] as? JsonObject)?.keys?.toList() ?: emptyList()
+    fun keysOf(name: String): List<String> = (json[name] as? JsonObject)?.keys?.toList() ?: emptyList()
 
-    fun details(): List<Details> = (json["details"] as? JsonObject)?.let { detailsJson ->
+    fun asList(name: String): List<Details> = (json[name] as? JsonObject)?.let { detailsJson ->
         val keyNames: Array<String> = detailsJson.keys.toTypedArray()
         detailsJson.toItemList(*keyNames) {
             mutableMapOf<String, Any>().apply {
@@ -93,3 +93,16 @@ val JsonValue?.isScalar get() = if (this == null) false else
     this is JsonNumber ||
     valueType == JsonValue.ValueType.TRUE ||
     valueType == JsonValue.ValueType.FALSE
+
+
+fun String?.esc(): String = if (this == null)
+    "" else
+    replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quote;")
+
+fun Number?.dollars(def: String = "", nil: String = ""): String = this?.let {
+    "$%.2f".format(it.toDouble()).let {
+        if (it != "$0.00")
+            it else
+            nil
+    }
+} ?: def

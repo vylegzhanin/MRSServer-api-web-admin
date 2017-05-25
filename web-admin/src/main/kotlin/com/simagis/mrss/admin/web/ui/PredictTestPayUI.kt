@@ -14,6 +14,9 @@ import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
+import com.vaadin.ui.renderers.HtmlRenderer
+import com.vaadin.ui.renderers.Renderer
+import com.vaadin.ui.renderers.TextRenderer
 import com.vaadin.ui.themes.ValoTheme
 import java.util.*
 import java.util.logging.Level
@@ -170,15 +173,26 @@ class PredictTestPayUI : UI() {
         this["in_fCode"] = filingCodeF.value?.code
     }))
 
-    private fun Result.toGrid() = Grid<Details>("Details").also { grid ->
-        grid.setWidth(100f, Sizeable.Unit.PERCENTAGE)
-        val details = details()
-        grid.setItems(details)
-        grid.heightByRows = details.size.toDouble()
-        detailsKeys().forEach { key ->
-            grid.addColumn({ details: Details -> details[key] }).apply {
-                caption = key
+    private fun Result.gridOf(
+            name: String,
+            gridCaption: String = name.capitalize(),
+            setupColumns: Grid<Details>.(List<String>) -> Unit = { setupColumnsDefault(it) }): Grid<Details>? {
+        val items = asList(name)
+        return when {
+            items.isNotEmpty() -> Grid<Details>(gridCaption).also { grid ->
+                grid.setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                grid.setItems(items)
+                grid.heightByRows = items.size.toDouble()
+                val list = keysOf(name)
+                setupColumns(grid, list)
             }
+            else -> null
+        }
+    }
+
+    private fun Grid<Details>.setupColumnsDefault(keys: List<String>) = keys.forEach { key ->
+        addColumn({ details: Details -> details[key] }).apply {
+            caption = key
         }
     }
 
@@ -196,14 +210,49 @@ class PredictTestPayUI : UI() {
                 })
             }
         })
-        addComponent(toGrid())
+        gridOf("details") { keys ->
+            fun map(details: Details, key: String): Any? {
+                return when (key) {
+                    "Code" -> {
+                        val code = details[key]
+                        val msg = details["Msg"] as? String
+                        if (msg.isNullOrBlank())
+                            code else
+                            """<strong title="${msg.esc()}">$code<sup style="color:red">*<sup></strong>"""
+                    }
+                    "MCFee",
+                    "ExpFee" -> (details[key] as? Number).dollars()
+                    else -> details[key]
+                }
+            }
+            keys.forEach { key ->
+                addColumn({ details: Details -> map(details, key) }).apply {
+                    caption = key
+                    isHidden = key == "Msg"
+                    when (key) {
+                        "Code" -> setRenderer(htmlRenderer())
+                        "MCFee",
+                        "ExpFee" -> setRenderer(TextRenderer())
+                    }
+                }
+            }
+        }?.let { addComponent(it) }
+        gridOf("DenialCodeDescription", "Denial Code Description")?.let { addComponent(it) }
     }
+
+    @Suppress("UNCHECKED_CAST")
+    private fun htmlRenderer() = HtmlRenderer() as? Renderer<Any?>
+            ?: throw AssertionError("invalid vaadin HtmlRenderer")
+
 
     private fun ScalarEntry.asSimpleField() = TextField(when (key) {
         "ExpectFee" -> "Expected Test Fee"
         "StatValue" -> "Predicted Test Value"
         else -> key
-    }, value.toString()).apply { isReadOnly = true }
+    }, when(key) {
+        "ExpectFee" -> (value as? Number).dollars()
+        else -> value.toString()
+    }).apply { isReadOnly = true }
 
     private fun ScalarEntry.asNeedABN(result: Result) = HorizontalLayout().apply {
         caption = "ABN Form Needed?"
@@ -244,7 +293,9 @@ class PredictTestPayUI : UI() {
         }
 
         val test = scalars["Test"]?.let { testMap[it] }
-        val reasonText = details().map { esc(it["Reason"]) }.distinct().joinToString(separator = ", ")
+        val reasonText = asList("DenialCodeDescription")
+                .map { esc(it["Reason"], ": ", it["Description"]) }
+                .joinToString(separator = "<hr>\n")
         ABNs[uuid] = ABN(
                 testText = esc(test?.id, ", ", test?.name),
                 testExpectFee = esc("$", scalars["ExpectFee"]),

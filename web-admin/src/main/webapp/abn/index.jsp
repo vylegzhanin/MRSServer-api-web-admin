@@ -78,14 +78,14 @@
         class="valueU"><%=abn.getTestText() %></span> below.
     <table width="100%" border="1">
         <tr>
-            <td bgcolor="#d3d3d3"><strong>Diagnostic Test</strong></td>
+            <td bgcolor="#d3d3d3" nowrap><strong>Diagnostic Test</strong></td>
             <td bgcolor="#d3d3d3"><strong>Reason Payer May Not Pay for the test or its components:</strong></td>
-            <td bgcolor="#d3d3d3"><strong>Estimated Cost</strong></td>
+            <td bgcolor="#d3d3d3" nowrap><strong>Estimated Cost</strong></td>
         </tr>
         <tr>
-            <td><span class="value"><%=abn.getTestText() %></span></td>
-            <td><span class="value"><%=abn.getReasonText() %></span></td>
-            <td><span class="value"><%=abn.getTestExpectFee() %></span></td>
+            <td valign="top" nowrap><span class="value"><%=abn.getTestText() %></span></td>
+            <td valign="top"><span class="value"><%=abn.getReasonText() %></span></td>
+            <td valign="top" nowrap><span class="value"><%=abn.getTestExpectFee() %></span></td>
         </tr>
     </table>
 
