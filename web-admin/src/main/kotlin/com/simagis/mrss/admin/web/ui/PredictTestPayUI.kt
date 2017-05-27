@@ -249,13 +249,13 @@ class PredictTestPayUI : UI() {
                     .joinToString(separator = ",")
             url.addQueryParameter("prn", payerF.value?.name ?: "")
             url.addQueryParameter("fCode", filingCodeF.value?.code ?: "")
-            url.addQueryParameter("dx1", dxF.value)
+            url.addQueryParameter("dx", dxF.value)
             url.addQueryParameter("cpt", cpt)
             url.build().url()
         }?.let { url ->
             val link = Link().apply {
                 isCaptionAsHtml = true
-                caption = VaadinIcons.EXTERNAL_LINK.html + "Open Claims"
+                caption = "Open Claims".withExternalLinkIcon()
                 targetName = "_blank"
                 resource = ExternalResource(url)
             }
@@ -269,6 +269,10 @@ class PredictTestPayUI : UI() {
     private fun htmlRenderer() = HtmlRenderer() as? Renderer<Any?>
             ?: throw AssertionError("invalid vaadin HtmlRenderer")
 
+    private fun String.withExternalLinkIcon(): String {
+        val separator = """<span style="text-decoration: none; display: inline-block; width: 3pt"></span>"""
+        return "$this$separator${VaadinIcons.EXTERNAL_LINK.html}"
+    }
 
     private fun ScalarEntry.asSimpleField() = TextField(when (key) {
         "ExpectFee" -> "Expected Test Fee"
@@ -295,7 +299,7 @@ class PredictTestPayUI : UI() {
         if (item == "Yes") {
             val link = Link().apply {
                 isCaptionAsHtml = true
-                caption = VaadinIcons.EXTERNAL_LINK.html + " Open ABN Form"
+                caption = "Open ABN Form".withExternalLinkIcon()
                 targetName = "_blank"
                 resource = ExternalResource(VaadinServlet.getCurrent().servletContext
                         .contextPath + "/abn?id=${result.registerABNSessionId()}")
