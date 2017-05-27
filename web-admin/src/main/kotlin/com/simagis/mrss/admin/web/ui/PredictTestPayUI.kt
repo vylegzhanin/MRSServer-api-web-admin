@@ -18,6 +18,7 @@ import com.vaadin.ui.renderers.HtmlRenderer
 import com.vaadin.ui.renderers.Renderer
 import com.vaadin.ui.renderers.TextRenderer
 import com.vaadin.ui.themes.ValoTheme
+import okhttp3.HttpUrl
 import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -238,6 +239,30 @@ class PredictTestPayUI : UI() {
             }
         }?.let { addComponent(it) }
         gridOf("DenialCodeDescription", "Denial Code Description")?.let { addComponent(it) }
+
+        // http://nj1etlpiped01:8080/query/ppc?cpt=&dx1=&fCode=&prn=
+        HttpUrl.parse("http://nj1etlpiped01:8080/query/ppc")?.newBuilder()?.let { url ->
+            val cpt = asList("details")
+                    .map { it["Cpt"] as? String }
+                    .filter { it != null }
+                    .distinct()
+                    .joinToString(separator = ",")
+            url.addQueryParameter("prn", payerF.value?.name ?: "")
+            url.addQueryParameter("fCode", filingCodeF.value?.code ?: "")
+            url.addQueryParameter("dx1", dxF.value)
+            url.addQueryParameter("cpt", cpt)
+            url.build().url()
+        }?.let { url ->
+            val link = Link().apply {
+                isCaptionAsHtml = true
+                caption = VaadinIcons.EXTERNAL_LINK.html + "Open Claims"
+                targetName = "_blank"
+                resource = ExternalResource(url)
+            }
+            addComponent(link)
+            setComponentAlignment(link, Alignment.MIDDLE_RIGHT)
+        }
+
     }
 
     @Suppress("UNCHECKED_CAST")
