@@ -9,10 +9,7 @@ import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.event.ShortcutAction
 import com.vaadin.icons.VaadinIcons
-import com.vaadin.server.ExternalResource
-import com.vaadin.server.Sizeable
-import com.vaadin.server.VaadinRequest
-import com.vaadin.server.VaadinServlet
+import com.vaadin.server.*
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.HtmlRenderer
 import com.vaadin.ui.renderers.Renderer
@@ -23,6 +20,7 @@ import java.util.*
 import java.util.logging.Level
 import java.util.logging.Logger
 import javax.json.JsonObject
+import javax.json.JsonString
 import javax.servlet.annotation.WebServlet
 
 /**
@@ -204,10 +202,17 @@ class PredictTestPayUI : UI() {
             scalars().forEach { entry ->
                 addComponent(VerticalLayout().apply {
                     setMargin(false)
-                    addComponent(when (entry.key) {
-                        "NeedABN" -> entry.asNeedABN(this@asComponent)
-                        else -> entry.asSimpleField()
-                    })
+                    when (entry.key) {
+                        "NeedABN" -> addComponent(entry.asNeedABN(this@asComponent))
+                        "NeedPrecert" -> addComponent(entry.asNeedPrecert(this@asComponent))
+                        "RunTimeSec" -> {
+                            Notification(
+                                    "RunTimeSec: %.3f".format(entry.value),
+                                    Notification.Type.TRAY_NOTIFICATION)
+                                    .show(Page.getCurrent())
+                        }
+                        else -> addComponent(entry.asSimpleField())
+                    }
                 })
             }
         })
@@ -263,6 +268,28 @@ class PredictTestPayUI : UI() {
             setComponentAlignment(link, Alignment.MIDDLE_RIGHT)
         }
 
+        json.getJsonArray("CommonDx")?.let { dxArray ->
+            if (dxArray.isNotEmpty()) {
+                addComponent(HorizontalLayout().apply {
+                    caption = "Common Diagnostic Codes (ICD-10)"
+                    addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
+                    addStyleName(ValoTheme.LAYOUT_CARD)
+                    setMargin(false)
+                    isSpacing = false
+                    dxArray.forEach { dx ->
+                        if (dx is JsonString) {
+                            addComponent(Button(dx.string).apply {
+                                addStyleName(ValoTheme.BUTTON_LINK)
+                                addStyleName(ValoTheme.BUTTON_SMALL)
+                                addClickListener {
+                                    dxF.value = dx.string
+                                }
+                            })
+                        }
+                    }
+                })
+            }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -283,11 +310,25 @@ class PredictTestPayUI : UI() {
         else -> value.toString()
     }).apply { isReadOnly = true }
 
-    private fun ScalarEntry.asNeedABN(result: Result) = HorizontalLayout().apply {
-        caption = "ABN Form Needed?"
-        val value = this@asNeedABN.value
+    private fun ScalarEntry.asNeedABN(result: Result) = asLinkYesNo(
+            "ABN form needed",
+            value as? Boolean,
+            "Open ABN Form",
+            { "/abn?id=${result.registerABN()}" }
+    )
+
+    private fun ScalarEntry.asNeedPrecert(result: Result) = asLinkYesNo(
+            "Precertification needed",
+            value as? Boolean,
+            "Open Precert Form",
+            { "/precert?id=${result.hashCode()}" }
+    )
+
+    private fun asLinkYesNo(topCaption: String, value: Boolean?, linkCaption: String, href: () -> String) = HorizontalLayout().apply {
+        caption = topCaption
         val item = when (value) {
-            is Number -> if (value.toDouble() > 0.9) "Yes" else "No"
+            true -> "Yes"
+            false -> "No"
             else -> "Undefined"
         }
         addComponent(RadioButtonGroup<String>().apply {
@@ -296,20 +337,19 @@ class PredictTestPayUI : UI() {
             setSelectedItem(item)
             addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
         })
-        if (item == "Yes") {
+        if (value == true) {
             val link = Link().apply {
                 isCaptionAsHtml = true
-                caption = "Open ABN Form".withExternalLinkIcon()
+                caption = linkCaption.withExternalLinkIcon()
                 targetName = "_blank"
-                resource = ExternalResource(VaadinServlet.getCurrent().servletContext
-                        .contextPath + "/abn?id=${result.registerABNSessionId()}")
+                resource = ExternalResource(VaadinServlet.getCurrent().servletContext.contextPath + href())
             }
             addComponent(link)
             setComponentAlignment(link, Alignment.MIDDLE_LEFT)
         }
     }
 
-    private fun Result.registerABNSessionId(): String {
+    private fun Result.registerABN(): String {
         val uuid = UUID.randomUUID().toString()
         val scalars = scalars()
         fun esc(vararg scalar: Any?): String {
