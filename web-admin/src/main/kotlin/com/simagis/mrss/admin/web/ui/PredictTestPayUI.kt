@@ -43,9 +43,11 @@ class PredictTestPayUI : UI() {
             payerF.clear()
             payerF.isEnabled = test != null
             payerF.setItems(contains, test?.call_ListPayers() ?: emptyList())
+            payerF.focus()
 
             filingCodeF.clear()
             filingCodeF.isEnabled = false
+            updatePredictBtn()
         }
     }
 
@@ -61,7 +63,9 @@ class PredictTestPayUI : UI() {
             val test = testF.value
             if (payer != null && test != null) {
                 filingCodeF.setItems(contains, (test to payer).call_FilingCodes())
+                filingCodeF.focus()
             }
+            updatePredictBtn()
         }
     }
 
@@ -69,6 +73,9 @@ class PredictTestPayUI : UI() {
         setItemCaptionGenerator { it?.let { "${it.code}: ${it.description}" } }
         setWidth(100f, Sizeable.Unit.PERCENTAGE)
         isEnabled = false
+        addSelectionListener {
+            updatePredictBtn()
+        }
     }
 
     private val dxF = TextField("Diagnosis Code (ICD-10)", "Z0000")
@@ -83,6 +90,7 @@ class PredictTestPayUI : UI() {
 
     private val predictBtn: Button = Button("Predict Payment").apply {
         addStyleName(ValoTheme.BUTTON_PRIMARY)
+        isEnabled = false
         setClickShortcut(ShortcutAction.KeyCode.ENTER)
         addClickListener {
             try {
@@ -94,8 +102,16 @@ class PredictTestPayUI : UI() {
         }
     }
 
+    private fun updatePredictBtn() {
+        predictBtn.isEnabled = listOf(
+                filingCodeF.value,
+                payerF.value,
+                testF.value
+        ).all { it != null }
+    }
+
     private val splitPanel = HorizontalSplitPanel().apply {
-        splitPosition = 35f
+        setSplitPosition(500f, Sizeable.Unit.PIXELS)
         firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF, predictBtn)
     }
 
@@ -119,6 +135,7 @@ class PredictTestPayUI : UI() {
         try {
             testF.setItems(contains, call_ListTestNames())
             testF.isEnabled = true
+            testF.focus()
         } catch(e: Throwable) {
             showError(e, "Prediction Server Error: %s")
         }
@@ -175,8 +192,9 @@ class PredictTestPayUI : UI() {
     private fun Result.gridOf(
             name: String,
             gridCaption: String = name.capitalize(),
+            itemsFilter: (List<Details>) -> List<Details> = { it },
             setupColumns: Grid<Details>.(List<String>) -> Unit = { setupColumnsDefault(it) }): Grid<Details>? {
-        val items = asList(name)
+        val items: List<Details> = itemsFilter(asList(name))
         return when {
             items.isNotEmpty() -> Grid<Details>(gridCaption).also { grid ->
                 grid.setWidth(100f, Sizeable.Unit.PERCENTAGE)
@@ -236,14 +254,36 @@ class PredictTestPayUI : UI() {
                     caption = key
                     isHidden = key == "Msg"
                     when (key) {
-                        "Code" -> setRenderer(htmlRenderer())
+                        "Code" -> {
+                            caption = "Warning"
+                            setRenderer(htmlRenderer())
+                        }
                         "MCFee",
                         "ExpFee" -> setRenderer(TextRenderer())
                     }
                 }
             }
         }?.let { addComponent(it) }
-        gridOf("DenialCodeDescription", "Denial Code Description")?.let { addComponent(it) }
+        gridOf("DenialCodeDescription", "Adjustment Reasons") { keys ->
+            setupColumnsDefault(keys)
+            columns.forEach {
+                when (it.caption) {
+                    "Reason" -> it.width = 96.toDouble()
+                }
+            }
+        }?.let { addComponent(it) }
+        gridOf("details", "Warnings", itemsFilter = {
+            it.filter { !(it["Msg"] as? String).isNullOrBlank() }.distinctBy { it["Msg"] }
+        }) { keys ->
+            val warningKeys = setOf("Code", "Msg")
+            setupColumnsDefault(keys.filter { it in warningKeys })
+            columns.forEach {
+                when (it.caption) {
+                    "Code" -> it.width = 96.toDouble()
+                    "Msg" -> it.caption = "Description"
+                }
+            }
+        }?.let { addComponent(it) }
 
         // http://nj1etlpiped01:8080/query/ppc?cpt=&dx1=&fCode=&prn=
         HttpUrl.parse("http://nj1etlpiped01:8080/query/ppc")?.newBuilder()?.let { url ->
@@ -353,9 +393,12 @@ class PredictTestPayUI : UI() {
         val uuid = UUID.randomUUID().toString()
         val scalars = scalars()
         val test = scalars["Test"]?.let { testMap[it] }
-        val reasonText = asList("DenialCodeDescription")
-                .map { esc(it["Reason"], ": ", it["Description"]) }
-                .joinToString(separator = "<hr>\n")
+        val reasons = asList("DenialCodeDescription").map { esc(it["Reason"], ": ", it["Description"]) }
+        val reasonText = when {
+            reasons.isNotEmpty() -> reasons
+            else -> asList("details").mapNotNull { it["Msg"] as? String }.distinct().map { esc(it) }
+        }.joinToString(separator = "<hr>\n")
+
         ABNs[uuid] = ABN(
                 testText = esc(test?.id, ", ", test?.name),
                 testExpectFee = esc("$", scalars["ExpectFee"]),
