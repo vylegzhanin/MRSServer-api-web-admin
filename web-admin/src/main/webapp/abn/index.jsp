@@ -2,6 +2,14 @@
 <%@ page import="com.simagis.mrss.admin.web.ui.ptp.ABNs" %>
 <%@ page import="com.vaadin.icons.VaadinIcons" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+    final String optionBox = VaadinIcons.THIN_SQUARE.getHtml();
+    final ABN data = ABNs.INSTANCE.get(request.getParameter("id"));
+    if (data == null) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        return;
+    }
+%>
 <html>
 <head>
     <title>Advance Beneficiary Notice of Noncoverage (ABN)</title>
@@ -48,19 +56,6 @@
     </style>
 </head>
 <body>
-<%!
-    private static ABN getABN(HttpServletRequest request) {
-        final String id = request.getParameter("id");
-        if (id == null) return ABNs.INSTANCE.getEmpty();
-        final ABN abn = ABNs.INSTANCE.get(id);
-        if (abn == null) return ABNs.INSTANCE.getEmpty();
-        return abn;
-    }
-
-    private static final String optionBox = VaadinIcons.THIN_SQUARE.getHtml();
-
-%>
-<% final ABN abn = getABN(request); %>
 <div style="margin: 0 auto; width: 9in">
     <h3>Notifier: BioReference Laboratories Inc.</h3>
     <h3 class="table100pc">
@@ -72,10 +67,10 @@
     <hr>
     <div style="text-align: center;"><h1>Advance Beneficiary Notice of Noncoverage (ABN)</h1></div>
 
-    <strong>NOTE:</strong> If Payer doesn't pay for diagnostic test: <span class="valueU"><%=abn.getTestText() %></span>
+    <strong>NOTE:</strong> If Payer doesn't pay for diagnostic test: <span class="valueU"><%=data.getTestText() %></span>
     below, you may have to pay. Payer does not pay for everything, even some care that you or your health care
     provider have good reason to think you need. We expect Payer may not pay for the diagnostic test: <span
-        class="valueU"><%=abn.getTestText() %></span> below.
+        class="valueU"><%=data.getTestText() %></span> below.
     <table width="100%" border="1">
         <tr>
             <td bgcolor="#d3d3d3" nowrap><strong>Diagnostic Test</strong></td>
@@ -83,9 +78,9 @@
             <td bgcolor="#d3d3d3" nowrap><strong>Estimated Cost</strong></td>
         </tr>
         <tr>
-            <td valign="top" nowrap><span class="value"><%=abn.getTestText() %></span></td>
-            <td valign="top"><span class="value"><%=abn.getReasonText() %></span></td>
-            <td valign="top" nowrap><span class="value"><%=abn.getTestExpectFee() %></span></td>
+            <td valign="top" nowrap><span class="value"><%=data.getTestText() %></span></td>
+            <td valign="top"><span class="value"><%=data.getReasonText() %></span></td>
+            <td valign="top" nowrap><span class="value"><%=data.getTestExpectFee() %></span></td>
         </tr>
     </table>
 
@@ -94,7 +89,7 @@
         <li>Read this notice, so you can make an informed decision about your care.</li>
         <li>Ask us any questions that you may have after you finish reading.</li>
         <li>Choose an option below about whether to receive the diagnostic test: <span
-                class="valueU"><%=abn.getTestText() %></span> listed above.<br>
+                class="valueU"><%=data.getTestText() %></span> listed above.<br>
             <strong>Note:</strong> If you choose Option 1 or 2, we may help you to use any other insurance that you
             might have, but Payer cannot require us to do this.
         </li>
@@ -108,19 +103,19 @@
         <tr>
             <td>
                 <strong><%=optionBox%> OPTION 1.</strong> I want the diagnostic test: <span
-                    class="valueU"><%=abn.getTestText() %></span> listed above. You may ask to be paid now, but I also
+                    class="valueU"><%=data.getTestText() %></span> listed above. You may ask to be paid now, but I also
                 want Payer billed for an official decision on payment, which is sent to me on a Payer Summary
                 Notice (MSN). I understand that if Payer doesn't pay, I am responsible for payment, but <strong>I can
                 appeal to Payer</strong> by following the directions on the MSN. If Payer does pay, you will refund
                 any payments I made to you, less co-pays or deductibles.<br><br>
 
                 <strong><%=optionBox%> OPTION 2.</strong> I want the diagnostic test: <span
-                    class="valueU"><%=abn.getTestText() %></span> listed above, but do not bill Payer. You may ask to be
+                    class="valueU"><%=data.getTestText() %></span> listed above, but do not bill Payer. You may ask to be
                 paid now as I am responsible for payment. <strong>I cannot appeal if Payer is not
                 billed.</strong><br><br>
 
                 <strong><%=optionBox%> OPTION 3.</strong> I don’t want the diagnostic test: <span
-                    class="valueU"><%=abn.getTestText() %></span> listed above. I understand with this choice I am not
+                    class="valueU"><%=data.getTestText() %></span> listed above. I understand with this choice I am not
                 responsible for payment, and <strong>I cannot appeal to see if Payer would pay.</strong>
             </td>
         </tr>

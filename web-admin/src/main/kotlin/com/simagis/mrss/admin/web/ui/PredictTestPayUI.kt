@@ -320,8 +320,8 @@ class PredictTestPayUI : UI() {
     private fun ScalarEntry.asNeedPrecert(result: Result) = asLinkYesNo(
             "Precertification needed",
             value as? Boolean,
-            "Open Precert Form",
-            { "/precert?id=${result.hashCode()}" }
+            "Open Precertification Form",
+            { "/dtpc?id=${result.registerDTPC()}" }
     )
 
     private fun asLinkYesNo(topCaption: String, value: Boolean?, linkCaption: String, href: () -> String) = HorizontalLayout().apply {
@@ -337,7 +337,7 @@ class PredictTestPayUI : UI() {
             setSelectedItem(item)
             addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
         })
-        if (value == true) {
+        if (item == "Yes") {
             val link = Link().apply {
                 isCaptionAsHtml = true
                 caption = linkCaption.withExternalLinkIcon()
@@ -352,15 +352,6 @@ class PredictTestPayUI : UI() {
     private fun Result.registerABN(): String {
         val uuid = UUID.randomUUID().toString()
         val scalars = scalars()
-        fun esc(vararg scalar: Any?): String {
-            return scalar
-                    .filter { it != null }
-                    .joinToString(separator = "")
-                    .replace("&", "&amp;")
-                    .replace("<", "&lt;")
-                    .replace(">", "&gt;")
-        }
-
         val test = scalars["Test"]?.let { testMap[it] }
         val reasonText = asList("DenialCodeDescription")
                 .map { esc(it["Reason"], ": ", it["Description"]) }
@@ -369,6 +360,28 @@ class PredictTestPayUI : UI() {
                 testText = esc(test?.id, ", ", test?.name),
                 testExpectFee = esc("$", scalars["ExpectFee"]),
                 reasonText = reasonText
+        )
+        return uuid
+    }
+
+    private fun Result.registerDTPC(): String {
+        val uuid = UUID.randomUUID().toString()
+        val scalars = scalars()
+        fun text(name: String) = (scalars[name] as? String) ?: ""
+        DTPCs[uuid] = DTPC(
+                payerText = text("Payer"),
+                patientAgeText = text("PatientAge"),
+                patientGenderText = text("PatientGender"),
+                dxText = text("DX"),
+                cptCodes = asList("details").mapNotNull {
+                    val code = it["Cpt"] as? String
+                    val description = it["CptDescription"] as? String
+                    when {
+                        code != null && description != null -> CPT(code, description)
+                        code != null -> CPT(code, "")
+                        else -> null
+                    }
+                }
         )
         return uuid
     }

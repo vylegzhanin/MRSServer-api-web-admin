@@ -1,9 +1,6 @@
 package com.simagis.mrss.admin.web.ui.ptp
 
-import java.util.concurrent.locks.ReentrantReadWriteLock
 import javax.json.*
-import kotlin.concurrent.read
-import kotlin.concurrent.write
 
 /**
  * <p>
@@ -42,21 +39,6 @@ class Result(val json: JsonObject) {
 typealias Details = Map<String, Any>
 
 typealias ScalarEntry = Map.Entry<String, Any>
-
-object ABNs {
-    private val lock = ReentrantReadWriteLock()
-    private val map = mutableMapOf<String, ABN>()
-
-    val empty = ABN()
-    operator fun get(id: String): ABN? = lock.read { map[id] }
-    operator fun set(id: String, value: ABN): Unit = lock.write { map[id] = value }
-}
-
-data class ABN(
-        val testText: String = "",
-        val testExpectFee: String = "",
-        val reasonText: String = ""
-)
 
 fun <T> JsonObject.toItemList(vararg keyNames: String, builder: (List<JsonValue?>) -> T): List<T> {
     val arrays: Map<String, JsonArray> = mutableMapOf<String, JsonArray>().apply {
