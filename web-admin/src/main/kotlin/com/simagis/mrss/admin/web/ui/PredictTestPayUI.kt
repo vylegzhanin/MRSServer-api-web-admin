@@ -234,7 +234,7 @@ class PredictTestPayUI : UI() {
                 })
             }
         })
-        gridOf("details") { keys ->
+        gridOf("details", "Risk Profile") { keys ->
             fun map(details: Details, key: String): Any? {
                 return when (key) {
                     "Code" -> {
