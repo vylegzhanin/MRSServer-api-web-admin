@@ -8,6 +8,7 @@ import java.io.IOException
 import java.time.Instant.now
 import java.time.temporal.ChronoUnit
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import javax.json.JsonObject
@@ -47,7 +48,9 @@ object MRSS {
                     throw CallException(json.getString("errorMessage", "Invalid response".withDetails()))
             }
 
-    private val okHttpClient = OkHttpClient()
+    private val okHttpClient = OkHttpClient.Builder()
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
     private val basePath: String get() = configuration.getProperty("basePath", "http://localhost:12800")
     private val userName: String get() = configuration.getProperty("userName", "admin")
     private val password: String get() = configuration.getProperty("password", "admin")

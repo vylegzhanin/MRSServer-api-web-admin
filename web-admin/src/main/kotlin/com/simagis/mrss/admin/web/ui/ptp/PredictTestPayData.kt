@@ -12,6 +12,7 @@ const val apiVersion = "0.4"
 data class Test(val id: String, val name: String)
 data class Payer(val name: String)
 data class FilingCode(val code: String, val description: String)
+data class DxCode(val code: String, val description: String)
 enum class Gender {M, F, }
 
 class Result(val json: JsonObject) {

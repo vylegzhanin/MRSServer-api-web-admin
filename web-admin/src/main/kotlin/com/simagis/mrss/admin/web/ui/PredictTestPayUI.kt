@@ -7,6 +7,7 @@ import com.simagis.mrss.json
 import com.simagis.mrss.set
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
+import com.vaadin.data.provider.ListDataProvider
 import com.vaadin.event.ShortcutAction
 import com.vaadin.icons.VaadinIcons
 import com.vaadin.server.*
@@ -60,10 +61,15 @@ class PredictTestPayUI : UI() {
             filingCodeF.clear()
             filingCodeF.isEnabled = payer != null
 
+            dxF.clear()
+            dxF.isEnabled = payer != null
+
             val test = testF.value
             if (payer != null && test != null) {
-                filingCodeF.setItems(contains, (test to payer).call_FilingCodes())
+                val selected = test to payer
+                filingCodeF.setItems(contains, selected.call_FilingCodes())
                 filingCodeF.focus()
+                dxF.setItems(selected.call_DxCodes())
             }
             updatePredictBtn()
         }
@@ -78,7 +84,14 @@ class PredictTestPayUI : UI() {
         }
     }
 
-    private val dxF = TextField("Diagnosis Code (ICD-10)", "Z0000")
+    private val dxF: ComboBox<DxCode?> = ComboBox<DxCode?>("Diagnosis Code (ICD-10)").apply {
+        setItemCaptionGenerator { it?.let { "${it.code}: ${it.description}" } }
+        setWidth(100f, Sizeable.Unit.PERCENTAGE)
+        isEnabled = false
+        addSelectionListener {
+            updatePredictBtn()
+        }
+    }
 
     private val genderF = RadioButtonGroup<Gender?>("Patient Gender", Gender.values().toList()).apply {
         setItemCaptionGenerator { it?.name }
@@ -104,6 +117,7 @@ class PredictTestPayUI : UI() {
 
     private fun updatePredictBtn() {
         predictBtn.isEnabled = listOf(
+                dxF.value,
                 filingCodeF.value,
                 payerF.value,
                 testF.value
@@ -174,6 +188,16 @@ class PredictTestPayUI : UI() {
             }
             ?: throw CallException("FilingCodes not found in response")
 
+    private fun Pair<Test, Payer>.call_DxCodes(): List<DxCode> = (MRSS.call("GetDxCodes", apiVersion,
+            json {
+                this["inTest"] = first.id
+                this["inPayer"] = second.name
+            })["DxCodes"] as? JsonObject)
+            ?.toItemList("dx1", "description") {
+                DxCode(it.str(0), it.str(1))
+            }
+            ?: throw CallException("DxCodes not found in response")
+
     private fun Test.call_ListPayers(): List<Payer> = MRSS.call("ListPayers", apiVersion,
             json { add("Test", id) })
             .toItemList("Payers") {
@@ -183,7 +207,7 @@ class PredictTestPayUI : UI() {
     private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", apiVersion, json {
         this["in_prn"] = payerF.value?.name
         this["in_test"] = testF.value?.id
-        this["in_dx"] = dxF.value
+        this["in_dx"] = dxF.value?.code
         this["in_ptnG"] = genderF.value?.name
         this["in_ptnAge"] = ageF.value.toInt()
         this["in_fCode"] = filingCodeF.value?.code
@@ -294,7 +318,7 @@ class PredictTestPayUI : UI() {
                     .joinToString(separator = ",")
             url.addQueryParameter("prn", payerF.value?.name ?: "")
             url.addQueryParameter("fCode", filingCodeF.value?.code ?: "")
-            url.addQueryParameter("dx", dxF.value)
+            url.addQueryParameter("dx", dxF.value?.code)
             url.addQueryParameter("cpt", cpt)
             url.build().url()
         }?.let { url ->
@@ -318,11 +342,14 @@ class PredictTestPayUI : UI() {
                     isSpacing = false
                     dxArray.forEach { dx ->
                         if (dx is JsonString) {
-                            addComponent(Button(dx.string).apply {
+                            val dxCode = dx.string
+                            addComponent(Button(dxCode).apply {
                                 addStyleName(ValoTheme.BUTTON_LINK)
                                 addStyleName(ValoTheme.BUTTON_SMALL)
                                 addClickListener {
-                                    dxF.value = dx.string
+                                    dxF.value = (dxF.dataProvider as? ListDataProvider<DxCode?>)
+                                            ?.items
+                                            ?.firstOrNull { it?.code == dxCode }
                                 }
                             })
                         }
