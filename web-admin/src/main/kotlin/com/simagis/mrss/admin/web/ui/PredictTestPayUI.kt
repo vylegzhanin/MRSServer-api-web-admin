@@ -19,12 +19,13 @@ import com.vaadin.ui.renderers.TextRenderer
 import com.vaadin.ui.themes.ValoTheme
 import okhttp3.HttpUrl
 import java.util.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import java.util.logging.Level
 import java.util.logging.Logger
 import javax.json.JsonObject
 import javax.json.JsonString
 import javax.servlet.annotation.WebServlet
-import kotlin.concurrent.thread
 
 /**
  * <p>
@@ -61,18 +62,24 @@ class PredictTestPayUI : UI() {
         isEnabled = false
         addSelectionListener {
             val payer: Payer? = it.selectedItem.orElse(null)
+            val test: Test? = testF.value
+
             filingCodeF.clear()
-            filingCodeF.isEnabled = payer != null
+            filingCodeF.isEnabled = false
 
             dxF.clear()
-            dxF.isEnabled = payer != null
+            dxF.isEnabled = false
 
-            val test = testF.value
             if (payer != null && test != null) {
                 val selected = test to payer
-                filingCodeF.setItems(contains, selected.call_FilingCodes())
-                filingCodeF.focus()
-                dxF.setItems(selected.call_DxCodes())
+                filingCodeWS.callAsync({ selected.call_FilingCodes() }) {
+                    filingCodeF.setItems(contains, it)
+                    filingCodeF.isEnabled = true
+                }
+                dxWS.callAsync({ selected.call_DxCodes() }) {
+                    dxF.setItems(it)
+                    dxF.isEnabled = true
+                }
             }
             updatePredictBtn()
         }
@@ -86,6 +93,7 @@ class PredictTestPayUI : UI() {
             updatePredictBtn()
         }
     }
+    private val filingCodeWS: ProgressBar = newWaitingStatus()
 
     private val dxF: ComboBox<DxCode?> = ComboBox<DxCode?>("Diagnosis Code (ICD-10)").apply {
         setItemCaptionGenerator { it?.let { "${it.code}: ${it.description}" } }
@@ -95,6 +103,7 @@ class PredictTestPayUI : UI() {
             updatePredictBtn()
         }
     }
+    private val dxWS = newWaitingStatus()
     private val dxPopup = PopupView("", VerticalLayout()).apply {
         isHideOnMouseOut = false
     }
@@ -127,33 +136,15 @@ class PredictTestPayUI : UI() {
             } else {
                 inPredictTestPay = true
                 isEnabled = false
-                predictStatus.isVisible = true
-                val ui = this@PredictTestPayUI.ui
                 val json = toPredictTestPayParameter()
-                thread(start = true) {
-                    try {
-                        val result = call_PredictTestPay(json)
-                        ui.access {
-                            predictStatus.isVisible = false
-                            splitPanel.secondComponent = result.asComponent()
-                            inPredictTestPay = false
-                        }
-                    } catch(e: Throwable) {
-                        ui.access {
-                            predictStatus.isVisible = false
-                            isEnabled = true
-                            showError(e, "Prediction Error: %s")
-                            inPredictTestPay = false
-                        }
-                    }
-                }
+                predictWS.callAsync(
+                        main = { call_PredictTestPay(json) },
+                        final = { inPredictTestPay = false; isEnabled = it != null },
+                        ui = { splitPanel.secondComponent = it.asComponent() })
             }
         }
     }
-    private val predictStatus: ProgressBar = ProgressBar().apply {
-        isIndeterminate = true
-        isVisible = false
-    }
+    private val predictWS: ProgressBar = newWaitingStatus()
 
     private fun updatePredictBtn() {
         predictBtn.isEnabled = listOf(
@@ -169,16 +160,11 @@ class PredictTestPayUI : UI() {
         firstComponent = VerticalLayout(
                 testF,
                 payerF,
-                filingCodeF,
-                HorizontalLayout(dxF, dxPopup).apply {
-                    setWidth(100f, Sizeable.Unit.PERCENTAGE)
-                    isSpacing = false
-                    setExpandRatio(dxF, 1f)
-                    dxF.setWidth(100f, Sizeable.Unit.PERCENTAGE)
-                },
+                filingCodeF.toWaitingLayout(filingCodeWS),
+                dxF.toWaitingLayout(dxWS).apply { addComponent(dxPopup) },
                 ageF,
                 genderF,
-                HorizontalLayout(predictBtn, predictStatus))
+                HorizontalLayout(predictBtn, predictWS))
     }
 
     override fun init(request: VaadinRequest) {
@@ -198,12 +184,10 @@ class PredictTestPayUI : UI() {
             addComponentsAndExpand(splitPanel)
         }
 
-        try {
-            testF.setItems(contains, call_ListTestNames())
+        null.callAsync({ call_ListTestNames() }) {
+            testF.setItems(contains, it)
             testF.isEnabled = true
             testF.focus()
-        } catch(e: Throwable) {
-            showError(e, "Prediction Server Error: %s")
         }
     }
 
@@ -544,7 +528,54 @@ class PredictTestPayUI : UI() {
         return uuid
     }
 
+    companion object {
+        private val ex: ExecutorService = Executors.newCachedThreadPool()
+
+        private fun Component.toWaitingLayout(waitingStatus: ProgressBar) = HorizontalLayout().apply {
+//            icon = ThemeResource("shared/img/spinner.gif")
+            setWidth(100f, Sizeable.Unit.PERCENTAGE)
+            isSpacing = false
+            addComponent(waitingStatus)
+            addComponentsAndExpand(this@toWaitingLayout.apply { setWidth(100f, Sizeable.Unit.PERCENTAGE) })
+            setComponentAlignment(waitingStatus, Alignment.BOTTOM_LEFT)
+        }
+
+        private fun newWaitingStatus() = ProgressBar().apply {
+            isIndeterminate = true
+            isVisible = false
+        }
+    }
+
+    private fun <T> ProgressBar?.callAsync(
+            main: () -> T,
+            final: (Throwable?) -> Unit = {},
+            ui: (T) -> Unit
+    ) {
+        this?.isVisible = true
+        ex.submit {
+            try {
+                val value = main()
+                access {
+                    this?.isVisible = false
+                    final(null)
+                    ui(value)
+                }
+            } catch(e: Throwable) {
+                access {
+                    this?.isVisible = false
+                    final(e)
+                    showError(e, "Prediction Server Error: %s")
+                }
+            }
+        }
+    }
+
     @WebServlet(urlPatterns = arrayOf("/ptp/*", "/VAADIN/*"), name = "PTP-UI-Servlet", asyncSupported = true)
     @VaadinServletConfiguration(ui = PredictTestPayUI::class, productionMode = false)
-    class UIServlet : VaadinServlet()
+    class UIServlet : VaadinServlet() {
+        override fun destroy() {
+            super.destroy()
+            ex.shutdown()
+        }
+    }
 }
