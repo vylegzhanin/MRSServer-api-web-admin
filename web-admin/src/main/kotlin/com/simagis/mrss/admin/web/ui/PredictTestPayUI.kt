@@ -5,6 +5,7 @@ import com.simagis.mrss.MRSS
 import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
 import com.simagis.mrss.set
+import com.vaadin.annotations.Push
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
@@ -23,6 +24,7 @@ import java.util.logging.Logger
 import javax.json.JsonObject
 import javax.json.JsonString
 import javax.servlet.annotation.WebServlet
+import kotlin.concurrent.thread
 
 /**
  * <p>
@@ -31,6 +33,7 @@ import javax.servlet.annotation.WebServlet
 const val appCaption = "PayPredict API Demo App (API version $apiVersion - Prototype)"
 
 @Title(appCaption)
+@Push
 class PredictTestPayUI : UI() {
     private val log = Logger.getLogger(javaClass.name)
     private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
@@ -97,22 +100,58 @@ class PredictTestPayUI : UI() {
         setItemCaptionGenerator { it?.name }
         setSelectedItem(Gender.M)
         addStyleName(ValoTheme.OPTIONGROUP_HORIZONTAL)
+        addValueChangeListener {
+            updatePredictBtn()
+        }
     }
 
-    private val ageF = TextField("Patient Age", "60")
+    private val ageF = TextField("Patient Age", "60").apply {
+        addValueChangeListener {
+            updatePredictBtn()
+        }
+    }
 
-    private val predictBtn: Button = Button("Predict Payment").apply {
-        addStyleName(ValoTheme.BUTTON_PRIMARY)
-        isEnabled = false
-        setClickShortcut(ShortcutAction.KeyCode.ENTER)
+    private var inPredictTestPay = false
+    private val predictBtn: Button = newPredictPaymentButton().apply {
         addClickListener {
-            try {
-                val result = call_PredictTestPay()
-                splitPanel.secondComponent = result.asComponent()
-            } catch(e: Throwable) {
-                showError(e, "Prediction Error: %s")
+            if (inPredictTestPay) {
+                Notification.show("Waiting for PredictTestPay...")
+            } else {
+                inPredictTestPay = true
+                isEnabled = false
+                predictStatus.isVisible = true
+                val ui = this@PredictTestPayUI.ui
+                val json = toPredictTestPayParameter()
+                thread(start = true) {
+                    try {
+                        val result = call_PredictTestPay(json)
+                        ui.access {
+                            predictStatus.isVisible = false
+                            splitPanel.secondComponent = result.asComponent()
+                            inPredictTestPay = false
+                        }
+                    } catch(e: Throwable) {
+                        ui.access {
+                            predictStatus.isVisible = false
+                            isEnabled = true
+                            showError(e, "Prediction Error: %s")
+                            inPredictTestPay = false
+                        }
+                    }
+                }
             }
         }
+    }
+    private val predictStatus: ProgressBar = ProgressBar().apply {
+        isIndeterminate = true
+        isVisible = false
+    }
+
+    private fun newPredictPaymentButton() = Button("Predict Payment").apply {
+        addStyleName(ValoTheme.BUTTON_PRIMARY)
+        isEnabled = false
+        isDisableOnClick = true
+        setClickShortcut(ShortcutAction.KeyCode.ENTER)
     }
 
     private fun updatePredictBtn() {
@@ -126,7 +165,8 @@ class PredictTestPayUI : UI() {
 
     private val splitPanel = HorizontalSplitPanel().apply {
         setSplitPosition(500f, Sizeable.Unit.PIXELS)
-        firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF, predictBtn)
+        firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF,
+                HorizontalLayout(predictBtn, predictStatus))
     }
 
     override fun init(request: VaadinRequest) {
@@ -204,14 +244,22 @@ class PredictTestPayUI : UI() {
                 Payer(it.str(0))
             }
 
-    private fun call_PredictTestPay(): Result = Result(MRSS.call("PredictTestPay", apiVersion, json {
-        this["in_prn"] = payerF.value?.name
-        this["in_test"] = testF.value?.id
-        this["in_dx"] = dxF.value?.code
-        this["in_ptnG"] = genderF.value?.name
-        this["in_ptnAge"] = ageF.value.toInt()
-        this["in_fCode"] = filingCodeF.value?.code
-    }))
+    private fun toPredictTestPayParameter(
+            test: String? = testF.value?.id,
+            prn: String? = payerF.value?.name,
+            dx: String? = dxF.value?.code,
+            ptnG: String? = genderF.value?.name,
+            ptnAge: Int? = ageF.value.toInt(),
+            fCode: String? = filingCodeF.value?.code) = json {
+        this["in_prn"] = prn
+        this["in_test"] = test
+        this["in_dx"] = dx
+        this["in_ptnG"] = ptnG
+        this["in_ptnAge"] = ptnAge
+        this["in_fCode"] = fCode
+    }
+
+    private fun call_PredictTestPay(json: JsonObject): Result = Result(MRSS.call("PredictTestPay", apiVersion, json))
 
     private fun Result.gridOf(
             name: String,
@@ -340,6 +388,10 @@ class PredictTestPayUI : UI() {
                     addStyleName(ValoTheme.LAYOUT_CARD)
                     setMargin(false)
                     isSpacing = false
+                    val popupView = PopupView("", VerticalLayout()).apply {
+                        isHideOnMouseOut = false
+                    }
+                    addComponent(popupView)
                     dxArray.forEach { dx ->
                         if (dx is JsonString) {
                             val dxCode = dx.string
@@ -347,9 +399,12 @@ class PredictTestPayUI : UI() {
                                 addStyleName(ValoTheme.BUTTON_LINK)
                                 addStyleName(ValoTheme.BUTTON_SMALL)
                                 addClickListener {
-                                    dxF.value = (dxF.dataProvider as? ListDataProvider<DxCode?>)
+                                    (dxF.dataProvider as? ListDataProvider<DxCode?>)
                                             ?.items
                                             ?.firstOrNull { it?.code == dxCode }
+                                            ?.let {
+                                                popupView.showDxPopup(it)
+                                            }
                                 }
                             })
                         }
@@ -357,6 +412,32 @@ class PredictTestPayUI : UI() {
                 })
             }
         }
+    }
+
+    private fun PopupView.showDxPopup(dxCode: DxCode) {
+        with(content.popupComponent as VerticalLayout) {
+            setWidth(640f, Sizeable.Unit.PIXELS)
+            removeAllComponents()
+
+            addComponent(Label(dxCode.code + ": " + dxCode.description).apply {
+                setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                addStyleName(ValoTheme.LABEL_H2)
+            })
+
+            addComponent(newPredictPaymentButton().apply {
+                isEnabled = true
+                addClickListener {
+                    if (inPredictTestPay) {
+                        Notification.show("Waiting for PredictTestPay...")
+                    } else {
+                        isPopupVisible = false
+                        dxF.value = dxCode
+                        predictBtn.click()
+                    }
+                }
+            })
+        }
+        isPopupVisible = true
     }
 
     @Suppress("UNCHECKED_CAST")
