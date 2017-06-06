@@ -95,6 +95,10 @@ class PredictTestPayUI : UI() {
             updatePredictBtn()
         }
     }
+    private val dxPopup = PopupView("", VerticalLayout()).apply {
+        isHideOnMouseOut = false
+    }
+
 
     private val genderF = RadioButtonGroup<Gender?>("Patient Gender", Gender.values().toList()).apply {
         setItemCaptionGenerator { it?.name }
@@ -112,7 +116,11 @@ class PredictTestPayUI : UI() {
     }
 
     private var inPredictTestPay = false
-    private val predictBtn: Button = newPredictPaymentButton().apply {
+    private val predictBtn: Button = Button("Predict Payment").apply {
+        addStyleName(ValoTheme.BUTTON_PRIMARY)
+        isEnabled = false
+        isDisableOnClick = true
+        setClickShortcut(ShortcutAction.KeyCode.ENTER)
         addClickListener {
             if (inPredictTestPay) {
                 Notification.show("Waiting for PredictTestPay...")
@@ -147,13 +155,6 @@ class PredictTestPayUI : UI() {
         isVisible = false
     }
 
-    private fun newPredictPaymentButton() = Button("Predict Payment").apply {
-        addStyleName(ValoTheme.BUTTON_PRIMARY)
-        isEnabled = false
-        isDisableOnClick = true
-        setClickShortcut(ShortcutAction.KeyCode.ENTER)
-    }
-
     private fun updatePredictBtn() {
         predictBtn.isEnabled = listOf(
                 dxF.value,
@@ -165,7 +166,18 @@ class PredictTestPayUI : UI() {
 
     private val splitPanel = HorizontalSplitPanel().apply {
         setSplitPosition(500f, Sizeable.Unit.PIXELS)
-        firstComponent = VerticalLayout(testF, payerF, filingCodeF, dxF, ageF, genderF,
+        firstComponent = VerticalLayout(
+                testF,
+                payerF,
+                filingCodeF,
+                HorizontalLayout(dxF, dxPopup).apply {
+                    setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                    isSpacing = false
+                    setExpandRatio(dxF, 1f)
+                    dxF.setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                },
+                ageF,
+                genderF,
                 HorizontalLayout(predictBtn, predictStatus))
     }
 
@@ -388,10 +400,6 @@ class PredictTestPayUI : UI() {
                     addStyleName(ValoTheme.LAYOUT_CARD)
                     setMargin(false)
                     isSpacing = false
-                    val popupView = PopupView("", VerticalLayout()).apply {
-                        isHideOnMouseOut = false
-                    }
-                    addComponent(popupView)
                     dxArray.forEach { dx ->
                         if (dx is JsonString) {
                             val dxCode = dx.string
@@ -403,7 +411,7 @@ class PredictTestPayUI : UI() {
                                             ?.items
                                             ?.firstOrNull { it?.code == dxCode }
                                             ?.let {
-                                                popupView.showDxPopup(it)
+                                                dxPopup.showDxPopup(it)
                                             }
                                 }
                             })
@@ -424,7 +432,7 @@ class PredictTestPayUI : UI() {
                 addStyleName(ValoTheme.LABEL_H2)
             })
 
-            addComponent(newPredictPaymentButton().apply {
+            addComponent(Button("Apply").apply {
                 isEnabled = true
                 addClickListener {
                     if (inPredictTestPay) {
@@ -432,7 +440,6 @@ class PredictTestPayUI : UI() {
                     } else {
                         isPopupVisible = false
                         dxF.value = dxCode
-                        predictBtn.click()
                     }
                 }
             })
