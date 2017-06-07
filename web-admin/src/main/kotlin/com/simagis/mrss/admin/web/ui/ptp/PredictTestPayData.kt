@@ -1,5 +1,7 @@
 package com.simagis.mrss.admin.web.ui.ptp
 
+import com.vaadin.server.Sizeable
+import com.vaadin.ui.Grid
 import javax.json.*
 
 /**
@@ -89,3 +91,28 @@ fun Number?.dollars(def: String = "", nil: String = ""): String = this?.let {
             nil
     }
 } ?: def
+
+
+fun Result.gridOf(
+        name: String,
+        gridCaption: String = name.capitalize(),
+        itemsFilter: (List<Details>) -> List<Details> = { it },
+        setupItems: Grid<Details>.(List<Details>) -> Unit = { setItems(it) },
+        setupUI: Grid<Details>.(List<Details>) -> Unit = { setWidth(100f, Sizeable.Unit.PERCENTAGE); heightByRows = it.size.toDouble() },
+        setupColumns: Grid<Details>.(List<String>) -> Unit = { setupColumnsDefault(it) }): Grid<Details>? {
+    val items: List<Details> = itemsFilter(asList(name))
+    return when {
+        items.isNotEmpty() -> Grid<Details>(gridCaption).also { grid ->
+            grid.setupItems(items)
+            grid.setupUI(items)
+            setupColumns(grid, keysOf(name))
+        }
+        else -> null
+    }
+}
+
+fun Grid<Details>.setupColumnsDefault(keys: List<String>) = keys.forEach { key ->
+    addColumn({ details: Details -> details[key] }).apply {
+        caption = key
+    }
+}

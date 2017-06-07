@@ -30,7 +30,7 @@ import kotlin.concurrent.thread
  * <p>
  * Created by alexei.vylegzhanin@gmail.com on 5/23/2017.
  */
-const val appCaption = "PayPredict API Demo App (API version $apiVersion - Prototype)"
+private const val appCaption = "PayPredict API Demo App (API version $apiVersion - Prototype)"
 
 @Title(appCaption)
 @Push
@@ -272,30 +272,6 @@ class PredictTestPayUI : UI() {
     }
 
     private fun call_PredictTestPay(json: JsonObject): Result = Result(MRSS.call("PredictTestPay", apiVersion, json))
-
-    private fun Result.gridOf(
-            name: String,
-            gridCaption: String = name.capitalize(),
-            itemsFilter: (List<Details>) -> List<Details> = { it },
-            setupColumns: Grid<Details>.(List<String>) -> Unit = { setupColumnsDefault(it) }): Grid<Details>? {
-        val items: List<Details> = itemsFilter(asList(name))
-        return when {
-            items.isNotEmpty() -> Grid<Details>(gridCaption).also { grid ->
-                grid.setWidth(100f, Sizeable.Unit.PERCENTAGE)
-                grid.setItems(items)
-                grid.heightByRows = items.size.toDouble()
-                val list = keysOf(name)
-                setupColumns(grid, list)
-            }
-            else -> null
-        }
-    }
-
-    private fun Grid<Details>.setupColumnsDefault(keys: List<String>) = keys.forEach { key ->
-        addColumn({ details: Details -> details[key] }).apply {
-            caption = key
-        }
-    }
 
     private fun Result.asComponent() = VerticalLayout().apply {
         addComponent(HorizontalLayout().apply {
@@ -544,7 +520,11 @@ class PredictTestPayUI : UI() {
         return uuid
     }
 
-    @WebServlet(urlPatterns = arrayOf("/ptp/*", "/VAADIN/*"), name = "PTP-UI-Servlet", asyncSupported = true)
+    @WebServlet(urlPatterns = arrayOf("/ptp/*"), name = "PTP-UI-Servlet", asyncSupported = true)
     @VaadinServletConfiguration(ui = PredictTestPayUI::class, productionMode = false)
     class UIServlet : VaadinServlet()
+
 }
+
+@WebServlet(urlPatterns = arrayOf("/VAADIN/*"), name = "UI-Servlet", asyncSupported = true)
+class UIServlet : VaadinServlet()
