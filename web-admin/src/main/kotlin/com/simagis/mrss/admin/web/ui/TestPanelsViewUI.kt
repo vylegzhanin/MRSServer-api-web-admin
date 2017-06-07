@@ -5,7 +5,9 @@ import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
+import com.vaadin.data.provider.ListDataProvider
 import com.vaadin.icons.VaadinIcons
+import com.vaadin.server.SerializablePredicate
 import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
@@ -49,7 +51,24 @@ class TestPanelsViewUI : UI() {
                         setupColumns = {
                             setupColumnsDefault(it)
                             columns.firstOrNull { it.caption == "Pos" }?.isHidden = true
-
+                            val filtersRow = appendHeaderRow()
+                            val filters = mutableMapOf<String, TextField>()
+                            columns.forEach { column: Grid.Column<Details, *> ->
+                                when (column.caption) {
+                                    "Count", "ExpFee", "MCFee", "NCPTs", "Sd" -> column.width = 120.0
+                                }
+                                if (!column.isHidden) {
+                                    filtersRow.getCell(column)?.component = TextField().apply {
+                                        setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                                        addStyleName(ValoTheme.TEXTFIELD_TINY)
+                                        placeholder = "Filter"
+                                        addValueChangeListener {
+                                            (dataProvider as? ListDataProvider)?.setFilter(filters.toFilter())
+                                        }
+                                        filters[column.caption] = this
+                                    }
+                                }
+                            }
                             addColumn({
                                 (it["Pos"] as? Number)?.toInt()?.let {
                                     val icon = VaadinIcons.EXTERNAL_LINK.html
@@ -86,6 +105,35 @@ class TestPanelsViewUI : UI() {
                 })
             }
         }
+    }
+
+    private fun Map<String, TextField>.toFilter(): SerializablePredicate<Details> = SerializablePredicate { details: Details ->
+        for ((id, field) in this) {
+            val filter = field.value
+            if (!filter.isNullOrBlank()) {
+                val value = details[id]
+                if (value is String && !value.contains(filter, ignoreCase = true)) return@SerializablePredicate false
+                else
+                    if (value is Number) {
+                        if (filter.startsWith(">")) {
+                            val asNumber = filter.removePrefix(">").toDoubleOrNull()
+                            if (asNumber != null) {
+                                if (value.toDouble() < asNumber) return@SerializablePredicate false
+                                continue
+                            }
+                        }
+                        if (filter.startsWith("<")) {
+                            val asNumber = filter.removePrefix("<").toDoubleOrNull()
+                            if (asNumber != null) {
+                                if (value.toDouble() > asNumber) return@SerializablePredicate false
+                                continue
+                            }
+                        }
+                        if (!value.toString().contains(filter, ignoreCase = true)) return@SerializablePredicate false
+                    }
+            }
+        }
+        true
     }
 
     @WebServlet(urlPatterns = arrayOf("/tpv/*"), name = "TPV-UI-Servlet", asyncSupported = true)
