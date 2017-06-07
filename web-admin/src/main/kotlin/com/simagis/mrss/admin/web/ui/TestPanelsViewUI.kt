@@ -56,8 +56,9 @@ class TestPanelsViewUI : UI() {
                                     """<a href="/tpv/?pos=$it" target="_blank">$icon</a>"""
                                 } ?: ""
                             }).apply {
-                                caption = "Link"
-                                width = 64.0
+                                caption = "Details"
+                                width = 80.0
+                                @Suppress("UNCHECKED_CAST")
                                 setRenderer(HtmlRenderer() as? com.vaadin.ui.renderers.Renderer<Any?>)
                             }
                         }))
