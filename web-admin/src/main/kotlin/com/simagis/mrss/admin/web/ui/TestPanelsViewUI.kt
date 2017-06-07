@@ -3,18 +3,17 @@ package com.simagis.mrss.admin.web.ui
 import com.simagis.mrss.MRSS
 import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
-import com.vaadin.annotations.Push
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
-import com.vaadin.server.Page
+import com.vaadin.icons.VaadinIcons
 import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
+import com.vaadin.ui.renderers.HtmlRenderer
 import com.vaadin.ui.themes.ValoTheme
-import java.util.logging.Logger
 import javax.servlet.annotation.WebServlet
-import kotlin.concurrent.thread
+
 
 /**
  * <p>
@@ -23,15 +22,7 @@ import kotlin.concurrent.thread
 private const val appCaption = "Test Panels View (API version $apiVersion - Prototype)"
 
 @Title(appCaption)
-@Push
 class TestPanelsViewUI : UI() {
-    private val log = Logger.getLogger(javaClass.name)
-    private val contains: (String, String) -> Boolean = { itemCaption, filterText -> itemCaption.contains(filterText, ignoreCase = true) }
-
-    private val splitPanel = HorizontalSplitPanel().apply {
-        setSplitPosition(720f, Sizeable.Unit.PIXELS)
-    }
-
     override fun init(request: VaadinRequest) {
         content = VerticalLayout().apply {
             setSizeFull()
@@ -46,49 +37,52 @@ class TestPanelsViewUI : UI() {
                     addStyleName(ValoTheme.LABEL_BOLD)
                 })
             })
-            addComponentsAndExpand(splitPanel)
-        }
+            val pos = request.getParameter("pos")?.toIntOrNull()
+            if (pos == null) {
+                addComponentsAndExpand(call_ListPanels().gridOf(
+                        name = "TestPanels",
+                        gridCaption = null,
+                        setupUI = {
+                            setSizeFull()
+                            setSelectionMode(Grid.SelectionMode.NONE)
+                        },
+                        setupColumns = {
+                            setupColumnsDefault(it)
+                            columns.firstOrNull { it.caption == "Pos" }?.isHidden = true
 
-        thread(start = true) {
-            val grid = call_ListPanels().gridOf("TestPanels",
-                    setupUI = { setSizeFull() },
-                    setupColumns = {
-                        setupColumnsDefault(it)
-                        columns.firstOrNull { it.caption == "Pos" }?.isHidden = true
-                    }
-            )?.apply {
-                addStyleName("smallgrid")
-                addSelectionListener {
-                    val pos = it.firstSelectedItem.orElse(null)?.get("Pos") as? Number
-                    if (pos == null) splitPanel.secondComponent = null else {
-                        thread(start = true) {
-                            val details = VerticalLayout().apply {
-                                val panelDetails = call_PanelDetails(pos.toInt())
-                                addComponent(HorizontalLayout().apply {
-                                    addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
+                            addColumn({
+                                (it["Pos"] as? Number)?.toInt()?.let {
+                                    val icon = VaadinIcons.EXTERNAL_LINK.html
+                                    """<a href="/tpv/?pos=$it" target="_blank">$icon</a>"""
+                                } ?: ""
+                            }).apply {
+                                caption = "Link"
+                                width = 64.0
+                                setRenderer(HtmlRenderer() as? com.vaadin.ui.renderers.Renderer<Any?>)
+                            }
+                        }))
+            } else {
+                addComponentsAndExpand(Panel().apply {
+                    addStyleName(ValoTheme.PANEL_BORDERLESS)
+                    content = VerticalLayout().apply {
+                        val panelDetails = call_PanelDetails(pos)
+                        addComponent(HorizontalLayout().apply {
+                            addStyleName(ValoTheme.LAYOUT_HORIZONTAL_WRAPPING)
+                            setMargin(false)
+                            fun ScalarEntry.asSimpleField() = TextField(key, value.toString()).apply {
+                                isReadOnly = true
+                            }
+                            panelDetails.scalars().forEach { entry ->
+                                addComponent(VerticalLayout().apply {
                                     setMargin(false)
-                                    fun ScalarEntry.asSimpleField() = TextField(key, value.toString()).apply {
-                                        isReadOnly = true
-                                    }
-                                    panelDetails.scalars().forEach { entry ->
-                                        addComponent(VerticalLayout().apply {
-                                            setMargin(false)
-                                            addComponent(entry.asSimpleField())
-                                        })
-                                    }
+                                    addComponent(entry.asSimpleField())
                                 })
-                                addComponent(panelDetails.gridOf("CptDetails"))
-                                addComponent(panelDetails.gridOf("CommonDx"))
                             }
-                            access {
-                                splitPanel.secondComponent = details
-                            }
-                        }
+                        })
+                        addComponent(panelDetails.gridOf("CptDetails"))
+                        addComponent(panelDetails.gridOf("CommonDx"))
                     }
-                }
-            }
-            access {
-                splitPanel.firstComponent = grid
+                })
             }
         }
     }

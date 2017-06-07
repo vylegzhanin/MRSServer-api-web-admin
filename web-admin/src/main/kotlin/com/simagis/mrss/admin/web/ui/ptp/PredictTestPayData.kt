@@ -95,7 +95,7 @@ fun Number?.dollars(def: String = "", nil: String = ""): String = this?.let {
 
 fun Result.gridOf(
         name: String,
-        gridCaption: String = name.capitalize(),
+        gridCaption: String? = name.capitalize(),
         itemsFilter: (List<Details>) -> List<Details> = { it },
         setupItems: Grid<Details>.(List<Details>) -> Unit = { setItems(it) },
         setupUI: Grid<Details>.(List<Details>) -> Unit = { setWidth(100f, Sizeable.Unit.PERCENTAGE); heightByRows = it.size.toDouble() },
