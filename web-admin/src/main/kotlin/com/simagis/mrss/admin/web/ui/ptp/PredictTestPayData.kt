@@ -31,8 +31,8 @@ class Result(val json: JsonObject) {
         val keyNames: Array<String> = detailsJson.keys.toTypedArray()
         detailsJson.toItemList(*keyNames) {
             mutableMapOf<String, Any>().apply {
-                keyNames.forEachIndexed { index, name ->
-                    this[name] = it.scalar(index)
+                keyNames.forEachIndexed { index, name1 ->
+                    this[name1] = it.scalar(index)
                 }
             }
         }
@@ -114,5 +114,6 @@ fun Result.gridOf(
 fun Grid<Details>.setupColumnsDefault(keys: List<String>) = keys.forEach { key ->
     addColumn({ details: Details -> details[key] }).apply {
         caption = key
+        id = key
     }
 }

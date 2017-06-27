@@ -6,7 +6,6 @@ import com.simagis.mrss.json
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
-import com.vaadin.icons.VaadinIcons
 import com.vaadin.server.SerializablePredicate
 import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
@@ -14,6 +13,7 @@ import com.vaadin.server.VaadinServlet
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.HtmlRenderer
 import com.vaadin.ui.themes.ValoTheme
+import java.util.*
 import javax.servlet.annotation.WebServlet
 
 
@@ -49,13 +49,30 @@ class TestPanelsViewUI : UI() {
                             setSelectionMode(Grid.SelectionMode.NONE)
                         },
                         setupColumns = {
+                            addColumn {
+                                val iPos = (it["Pos"] as? Number)?.toInt()
+                                val test = it["Test"]
+                                """<a href="/tpv/?pos=$iPos" target="_blank">$test</a>"""
+                            }.apply {
+                                caption = "Test"
+                                width = 100.0
+                                id = "Test+Pos"
+                                setComparator { o1, o2 ->
+                                    Objects.compare(o1, o2, compareBy<Details?> { it?.get("Test") as? String })
+                                }
+                                @Suppress("UNCHECKED_CAST")
+                                setRenderer(HtmlRenderer() as? com.vaadin.ui.renderers.Renderer<Any?>)
+                            }
                             setupColumnsDefault(it)
-                            columns.firstOrNull { it.caption == "Pos" }?.isHidden = true
                             val filtersRow = appendHeaderRow()
                             val filters = mutableMapOf<String, TextField>()
                             columns.forEach { column: Grid.Column<Details, *> ->
-                                when (column.caption) {
-                                    "Count", "ExpFee", "MCFee", "NCPTs", "Sd" -> column.width = 120.0
+                                when (column.id) {
+                                    "Test", "Pos" -> column.isHidden = true
+                                    "TestName" -> column.width = 240.0
+                                    "Count", "ExpectFee", "PredictFee" -> column.width = 120.0
+                                    "CptList", "Top10DX" -> column.width = 280.0
+                                    "NCPTs", "MCFee", "Sd" -> column.isHidden = true
                                 }
                                 if (!column.isHidden) {
                                     filtersRow.getCell(column)?.component = TextField().apply {
@@ -69,18 +86,10 @@ class TestPanelsViewUI : UI() {
                                     }
                                 }
                             }
-                            addColumn({
-                                (it["Pos"] as? Number)?.toInt()?.let {
-                                    val icon = VaadinIcons.EXTERNAL_LINK.html
-                                    """<a href="/tpv/?pos=$it" target="_blank">$icon</a>"""
-                                } ?: ""
-                            }).apply {
-                                caption = "Details"
-                                width = 80.0
-                                @Suppress("UNCHECKED_CAST")
-                                setRenderer(HtmlRenderer() as? com.vaadin.ui.renderers.Renderer<Any?>)
-                            }
-                        }))
+                        })
+                        ?.apply {
+                            frozenColumnCount = columns.indexOfFirst { it.id == "TestName"} + 1
+                        })
             } else {
                 addComponentsAndExpand(Panel().apply {
                     addStyleName(ValoTheme.PANEL_BORDERLESS)
@@ -141,7 +150,7 @@ class TestPanelsViewUI : UI() {
     class UIServlet : VaadinServlet()
 }
 
-private fun call_ListPanels(): Result = Result(MRSS.call("ListPanels", apiVersion, json {}))
+private fun call_ListPanels(): Result = Result(MRSS.call("ListPanels", "0.5", json {}))
 private fun call_PanelDetails(pos: Int): Result = Result(MRSS.call("PanelDetails", apiVersion, json { add("Pos", pos) }))
 
 
