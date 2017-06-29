@@ -21,7 +21,7 @@ import javax.servlet.annotation.WebServlet
  * <p>
  * Created by alexei.vylegzhanin@gmail.com on 6/7/2017.
  */
-private const val appCaption = "Test Panels View (API version $apiVersion - Prototype)"
+private const val appCaption = "Test Panels View (API version 0.5 - Prototype)"
 
 @Title(appCaption)
 class TestPanelsViewUI : UI() {
@@ -151,6 +151,4 @@ class TestPanelsViewUI : UI() {
 }
 
 private fun call_ListPanels(): Result = Result(MRSS.call("ListPanels", "0.5", json {}))
-private fun call_PanelDetails(pos: Int): Result = Result(MRSS.call("PanelDetails", apiVersion, json { add("Pos", pos) }))
-
-
+private fun call_PanelDetails(pos: Int): Result = Result(MRSS.call("PanelDetails", "0.5", json { add("Pos", pos) }))
