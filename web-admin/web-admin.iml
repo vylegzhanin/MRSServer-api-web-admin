@@ -9,7 +9,6 @@
         <sourceRoots>
           <root url="file://$MODULE_DIR$/src/main/kotlin" />
           <root url="file://$MODULE_DIR$/src/main/resources" />
-          <root url="file://$MODULE_DIR$/target/generated-sources/wscdn" />
         </sourceRoots>
       </configuration>
     </facet>
@@ -30,19 +29,6 @@
         </compilerArguments>
       </configuration>
     </facet>
-    <facet type="gwt" name="GWT">
-      <configuration>
-        <setting name="additionalCompilerParameters" value="-Xss1024k" />
-        <setting name="compilerParameters" value="-compileReport" />
-        <setting name="compilerMaxHeapSize" value="512" />
-        <setting name="gwtScriptOutputStyle" value="OBF" />
-        <setting name="gwtSdkUrl" value="file://$MODULE_DIR$/../../gwt-2.8.1" />
-        <setting name="webFacet" value="Web" />
-        <packaging>
-          <module name="com.simagis.mrss.admin.web.AppWidgetSet" enabled="false" />
-        </packaging>
-      </configuration>
-    </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5">
     <output url="file://$MODULE_DIR$/target/classes" />
@@ -52,7 +38,6 @@
       <sourceFolder url="file://$MODULE_DIR$/src/main/resources" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src/test/kotlin" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/src/test/resources" type="java-test-resource" />
-      <sourceFolder url="file://$MODULE_DIR$/target/generated-sources/wscdn" isTestSource="false" generated="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
