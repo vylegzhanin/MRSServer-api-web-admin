@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="FrameworkDetectionExcludesConfiguration">
+    <file type="gwt" url="file://$PROJECT_DIR$/web-admin" />
     <file type="web" url="file://$PROJECT_DIR$/web-admin" />
     <type id="android" />
   </component>

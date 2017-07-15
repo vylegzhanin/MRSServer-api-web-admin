@@ -23,6 +23,12 @@
           <element id="library" level="project" name="Maven: com.vaadin:vaadin-push:8.0.6" />
           <element id="library" level="project" name="Maven: com.vaadin.external.atmosphere:atmosphere-runtime:2.4.5.vaadin2" />
           <element id="library" level="project" name="Maven: com.vaadin.external.slf4j:vaadin-slf4j-jdk14:1.6.1" />
+          <element id="library" level="project" name="Maven: com.vaadin:vaadin-charts:4.0.0" />
+          <element id="library" level="project" name="Maven: com.vaadin:vaadin-charts-model:4.0.0" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-annotations:2.5.0" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-databind:2.5.2" />
+          <element id="library" level="project" name="Maven: com.fasterxml.jackson.core:jackson-core:2.5.1" />
+          <element id="library" level="project" name="Maven: commons-io:commons-io:1.4" />
           <element id="library" level="project" name="Maven: javax.json:javax.json-api:1.0" />
           <element id="library" level="project" name="Maven: org.glassfish:javax.json:1.0.4" />
         </element>
@@ -31,6 +37,11 @@
         <element id="file-copy" path="$PROJECT_DIR$/web-admin/target/web-admin-0.1.0.0/META-INF/MANIFEST.MF" />
       </element>
       <element id="javaee-facet-resources" facet="web-admin/web/Web" />
+      <element id="directory" name="VAADIN">
+        <element id="directory" name="widgetsets">
+          <element id="gwt-compiler-output" facet="web-admin/gwt/GWT" />
+        </element>
+      </element>
     </root>
   </artifact>
 </component>
