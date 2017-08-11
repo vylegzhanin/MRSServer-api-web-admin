@@ -214,10 +214,7 @@ private val percentFormat = DecimalFormat("#%")
 private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     setSizeUndefined()
     val details = gridOf("BestMatchPanelDetails")
-            ?.apply {
-                setSizeUndefined()
-                caption = "Similar Tests"
-            }
+            ?.apply { setSizeUndefined() }
 
     if (details != null) {
         val scalars = scalars()
@@ -231,6 +228,7 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
         })
         val bestMatchPanel = scalars["BestMatchPanel"] as? String
         val bestMatchPanelName = scalars["BestMatchPanelName"] as? String
+        details.caption = "Most Similar Panel: $bestMatchPanel | $bestMatchPanelName"
         addComponent(PopupView("<strong>$bestMatchPanel | $bestMatchPanelName</strong>", VerticalLayout().apply {
             setSizeUndefined()
             setMargin(true)
