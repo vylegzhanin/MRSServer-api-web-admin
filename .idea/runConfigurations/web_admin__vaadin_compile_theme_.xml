@@ -1,0 +1,26 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="web-admin [vaadin:compile-theme]" type="MavenRunConfiguration" factoryName="Maven">
+    <MavenSettings>
+      <option name="myGeneralSettings" />
+      <option name="myRunnerSettings" />
+      <option name="myRunnerParameters">
+        <MavenRunnerParameters>
+          <option name="profiles">
+            <set />
+          </option>
+          <option name="goals">
+            <list>
+              <option value="vaadin:compile-theme" />
+            </list>
+          </option>
+          <option name="profilesMap">
+            <map />
+          </option>
+          <option name="resolveToWorkspace" value="false" />
+          <option name="workingDirPath" value="$PROJECT_DIR$/web-admin" />
+        </MavenRunnerParameters>
+      </option>
+    </MavenSettings>
+    <method />
+  </configuration>
+</component>

@@ -7,6 +7,7 @@ import com.simagis.mrss.admin.web.ui.ptp.gridOf
 import com.simagis.mrss.array
 import com.simagis.mrss.json
 import com.vaadin.annotations.Push
+import com.vaadin.annotations.Theme
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
@@ -31,6 +32,7 @@ import kotlin.concurrent.thread
 private const val appCaption = "Test Panel Simulator (API version 0.5 - Prototype)"
 
 @Title(appCaption)
+@Theme("ipad-valo")
 @Push
 class TestPanelSimulatorUI : UI() {
     override fun init(request: VaadinRequest) {

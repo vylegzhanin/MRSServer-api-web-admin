@@ -29,6 +29,11 @@
         </compilerArguments>
       </configuration>
     </facet>
+    <facet type="gwt" name="GWT">
+      <configuration>
+        <setting name="webFacet" value="Web" />
+      </configuration>
+    </facet>
   </component>
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_5">
     <output url="file://$MODULE_DIR$/target/classes" />

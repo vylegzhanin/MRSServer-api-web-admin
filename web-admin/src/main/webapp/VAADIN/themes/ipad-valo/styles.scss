@@ -1,0 +1,11 @@
+// Modify the base color of the theme
+$v-font-size: 24px;
+
+// Import valo after setting the parameters
+@import "../valo/valo";
+
+.ipad-valo {
+  @include valo;
+
+  // Your theme's rules go here
+}
