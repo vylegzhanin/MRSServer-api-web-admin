@@ -11,10 +11,12 @@ import com.vaadin.annotations.Theme
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
+import com.vaadin.event.ShortcutAction
 import com.vaadin.icons.VaadinIcons
 import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
+import com.vaadin.server.VaadinSession
 import com.vaadin.shared.ui.ContentMode
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.NumberRenderer
@@ -35,8 +37,11 @@ private const val appCaption = "Test Panel Simulator (API version 0.5 - Prototyp
 @Theme("ipad-valo")
 @Push
 class TestPanelSimulatorUI : UI() {
+
+    private lateinit var contentMain: VerticalLayout
+
     override fun init(request: VaadinRequest) {
-        content = VerticalLayout().apply {
+        contentMain = VerticalLayout().apply {
             setSizeFull()
             setMargin(false)
             isSpacing = false
@@ -174,6 +179,47 @@ class TestPanelSimulatorUI : UI() {
                 addTab(VerticalLayout(), "CPT View").isEnabled = false
                 addTab(VerticalLayout(), "Dx View").isEnabled = false
             })
+        }
+        content = login()
+    }
+
+    private fun login(): Component {
+        val session = VaadinSession.getCurrent()
+        if (session.getAttribute("tps/user") != null) return contentMain
+        return VerticalLayout().apply {
+            setMargin(false)
+            isSpacing = false
+            addComponent(HorizontalLayout().apply {
+                setWidth(100f, Sizeable.Unit.PERCENTAGE)
+                addStyleName(ValoTheme.WINDOW_TOP_TOOLBAR)
+                addComponent(Label(appCaption).apply {
+                    addStyleName(ValoTheme.LABEL_COLORED)
+                    addStyleName(ValoTheme.LABEL_LARGE)
+                    addStyleName(ValoTheme.LABEL_BOLD)
+                })
+            })
+            val loginLayout = HorizontalLayout().apply {
+                setMargin(true)
+                val userName = TextField("User Name")
+                val password = PasswordField("Password")
+                val button = Button("Log In").apply {
+                    addStyleName(ValoTheme.BUTTON_PRIMARY)
+                    setClickShortcut(ShortcutAction.KeyCode.ENTER)
+                    addClickListener {
+                        if (userName.value == "brl" && password.value == "sales") {
+                            session.setAttribute("tps/user", true)
+                            content = contentMain
+                        } else {
+                            Notification.show("Invalid User Name or Password, please try again")
+                        }
+                    }
+                }
+                addComponents(userName, password, button)
+                setComponentAlignment(button, Alignment.BOTTOM_LEFT)
+                userName.focus()
+            }
+            addComponents(loginLayout)
+            setComponentAlignment(loginLayout, Alignment.MIDDLE_CENTER)
         }
     }
 
