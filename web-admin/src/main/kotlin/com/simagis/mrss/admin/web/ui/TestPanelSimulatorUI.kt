@@ -67,11 +67,10 @@ class TestPanelSimulatorUI : UI() {
                     fun updateTotals() {
                         //language=HTML
                         totals.value = """
-                            <strong>Totals</strong>: Payment Probability - <strong>%s</strong>,
+                            <strong>Totals</strong>:
                                     Expect Fee - <strong>%s</strong>,
                                     Expected Value - <strong>%s</strong>"""
                                 .format(
-                                        percentFormat.format(data.items.minBy { it.payProbability ?: 0.0 }?.payProbability ?: 0.0),
                                         dollarFormat.format(data.items.sumByDouble { it.expectFee ?: 0.0 }),
                                         dollarFormat.format(data.items.sumByDouble { it.expectValue ?: 0.0 })
                                 )
@@ -108,7 +107,6 @@ class TestPanelSimulatorUI : UI() {
                         }
                         with(getColumn("payProbability")) {
                             caption = "Payment Probability"
-                            renderer = NumberRenderer(percentFormat)
                             styleGenerator = StyleGenerator { "align-right" }
                         }
                         with(getColumn("expectValue")) {
@@ -241,7 +239,7 @@ class ResultTestPay(private val details: Details) {
     val medicareFee get() = details["MedicareFee"] as? Double
     val expectFee get() = details["ExpectFee"] as? Double
     val expectValue get() = details["ExpectValue"] as? Double
-    val payProbability get() = details["PayProbability"] as? Double
+    val payProbability get() = details["PayProbability"] as? String
 
     override fun toString(): String = "$test | $testName"
 
@@ -262,7 +260,9 @@ private val percentFormat = DecimalFormat("#%")
 private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     setSizeUndefined()
     val details = gridOf("BestMatchPanelDetails")
-            ?.apply { setSizeUndefined() }
+            ?.apply {
+                setWidth(64f, Sizeable.Unit.EM)
+            }
 
     if (details != null) {
         val scalars = scalars()
@@ -278,7 +278,8 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
         val bestMatchPanelName = scalars["BestMatchPanelName"] as? String
         details.caption = "Most Similar Panel: $bestMatchPanel | $bestMatchPanelName"
         addComponent(PopupView("<strong>$bestMatchPanel | $bestMatchPanelName</strong>", VerticalLayout().apply {
-            setSizeUndefined()
+            setWidth(100f, Sizeable.Unit.PERCENTAGE)
+            setHeightUndefined()
             setMargin(true)
             addComponent(details)
         }).apply {
