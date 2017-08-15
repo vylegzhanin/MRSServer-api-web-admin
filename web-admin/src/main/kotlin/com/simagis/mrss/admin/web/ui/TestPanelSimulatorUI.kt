@@ -34,7 +34,6 @@ import kotlin.concurrent.thread
 private const val appCaption = "Test Panel Simulator (API version 0.5 - Prototype)"
 
 @Title(appCaption)
-@Theme("ipad-valo")
 @Push
 class TestPanelSimulatorUI : UI() {
 
@@ -204,7 +203,7 @@ class TestPanelSimulatorUI : UI() {
                     addStyleName(ValoTheme.BUTTON_PRIMARY)
                     setClickShortcut(ShortcutAction.KeyCode.ENTER)
                     addClickListener {
-                        if (userName.value == "brl" && password.value == "sales") {
+                        if (userName.value == "Brl" && password.value == "sales") {
                             session.setAttribute("tps/user", true)
                             content = contentMain
                         } else {
@@ -261,9 +260,9 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     setSizeUndefined()
     val details = gridOf("BestMatchPanelDetails")
             ?.apply {
-                setWidth(64f, Sizeable.Unit.EM)
-                if (heightByRows > 10) {
-                    heightByRows = 10.0
+                setWidth(42f, Sizeable.Unit.EM)
+                if (heightByRows > 8) {
+                    heightByRows = 8.0
                 }
             }
 
