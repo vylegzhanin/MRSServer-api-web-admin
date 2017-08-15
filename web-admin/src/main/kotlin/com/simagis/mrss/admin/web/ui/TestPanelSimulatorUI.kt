@@ -262,6 +262,9 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     val details = gridOf("BestMatchPanelDetails")
             ?.apply {
                 setWidth(64f, Sizeable.Unit.EM)
+                if (heightByRows > 10) {
+                    heightByRows = 10.0
+                }
             }
 
     if (details != null) {
