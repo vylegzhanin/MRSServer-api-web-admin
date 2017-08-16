@@ -7,7 +7,6 @@ import com.simagis.mrss.admin.web.ui.ptp.gridOf
 import com.simagis.mrss.array
 import com.simagis.mrss.json
 import com.vaadin.annotations.Push
-import com.vaadin.annotations.Theme
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
@@ -56,13 +55,14 @@ class TestPanelSimulatorUI : UI() {
             addComponentsAndExpand(TabSheet().apply {
                 setSizeFull()
                 addStyleName(ValoTheme.TABSHEET_PADDED_TABBAR)
+                val testDataProvider = ListDataProvider<ResultTestPay>(mutableSetOf())
                 addTab(VerticalLayout().apply {
-                    caption = "Test View"
-                    val data = ListDataProvider<ResultTestPay>(mutableSetOf())
+                    caption = "Test Composition"
                     val totals = Label("", ContentMode.HTML).apply {
                         setWidth(100f, Sizeable.Unit.PERCENTAGE)
                         addStyleName(ValoTheme.LABEL_BOLD)
                     }
+
                     fun updateTotals() {
                         //language=HTML
                         totals.value = """
@@ -70,8 +70,8 @@ class TestPanelSimulatorUI : UI() {
                                     Expect Fee - <strong>%s</strong>,
                                     Expected Value - <strong>%s</strong>"""
                                 .format(
-                                        dollarFormat.format(data.items.sumByDouble { it.expectFee ?: 0.0 }),
-                                        dollarFormat.format(data.items.sumByDouble { it.expectValue ?: 0.0 })
+                                        dollarFormat.format(testDataProvider.items.sumByDouble { it.expectFee ?: 0.0 }),
+                                        dollarFormat.format(testDataProvider.items.sumByDouble { it.expectValue ?: 0.0 })
                                 )
                     }
                     updateTotals()
@@ -90,7 +90,7 @@ class TestPanelSimulatorUI : UI() {
 
                     val grid = Grid<ResultTestPay>(ResultTestPay::class.java).apply {
                         setSizeFull()
-                        dataProvider = data
+                        dataProvider = testDataProvider
                         setSelectionMode(Grid.SelectionMode.MULTI)
                         setColumnOrder(
                                 "test", "testName",
@@ -128,7 +128,7 @@ class TestPanelSimulatorUI : UI() {
                         setHeightUndefined()
                         fun rebuildSimilarPanelView() {
                             similarPopupLayout.removeAllComponents()
-                            val tests = data.items.map { it.test }.toSet()
+                            val tests = testDataProvider.items.map { it.test }.toSet()
                             if (tests.isEmpty()) return
                             similarPopupLayout.addComponent(ProgressBar().apply {
                                 isIndeterminate = true
@@ -150,7 +150,7 @@ class TestPanelSimulatorUI : UI() {
                             popupWidth = "32em"
                             addSelectionListener {
                                 value?.let {
-                                    if (data.items.add(it)) data.refreshAll()
+                                    if (testDataProvider.items.add(it)) testDataProvider.refreshAll()
                                     grid.deselectAll()
                                     grid.select(it)
                                     rebuildSimilarPanelView()
@@ -161,8 +161,8 @@ class TestPanelSimulatorUI : UI() {
                         addComponent(Button("Delete Selected", VaadinIcons.FILE_REMOVE).apply {
                             description = "Remove selected tests"
                             addClickListener {
-                                data.items.removeAll(grid.selectedItems)
-                                data.refreshAll()
+                                testDataProvider.items.removeAll(grid.selectedItems)
+                                testDataProvider.refreshAll()
                                 rebuildSimilarPanelView()
                             }
                         })
@@ -173,8 +173,30 @@ class TestPanelSimulatorUI : UI() {
                         addStyleName(ValoTheme.LABEL_TINY)
                     })
                 })
-                addTab(VerticalLayout(), "CPT View").isEnabled = false
-                addTab(VerticalLayout(), "Dx View").isEnabled = false
+                val dxViewLayout = VerticalLayout().apply {
+                    caption = "Diagnostic Codes"
+                }
+                addTab(dxViewLayout)
+
+                addSelectedTabChangeListener {
+                    if (selectedTab == dxViewLayout) {
+                        dxViewLayout.removeAllComponents()
+                        val tests = testDataProvider.items.map { it.test }.toSet()
+                        if (tests.isNotEmpty()) {
+                            dxViewLayout.addComponent(ProgressBar().apply {
+                                isIndeterminate = true
+                            })
+                            val ui = this.ui
+                            thread(start = true) {
+                                val diagnosticCodesView = call_TestDxView(tests).toDiagnosticCodesView()
+                                ui.access {
+                                    dxViewLayout.removeAllComponents()
+                                    dxViewLayout.addComponentsAndExpand(diagnosticCodesView)
+                                }
+                            }
+                        }
+                    }
+                }
             })
         }
         content = login()
@@ -293,8 +315,34 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     }
 }
 
+private fun Result.toDiagnosticCodesView() = VerticalLayout().apply {
+    setSizeFull()
+    setMargin(false)
+    val details = gridOf("TestDxPay")
+            ?.apply {
+                caption = null
+                setSizeFull()
+            }
+
+    if (details != null) {
+        addComponent(Label().apply {
+            addStyleName(ValoTheme.LABEL_BOLD)
+            contentMode = ContentMode.HTML
+            //language=HTML
+            value = "Commonlty used diagnosis codes for selected test composition"
+        })
+        addComponentsAndExpand(details)
+    } else {
+        addComponent(Label("Diagnosis codes not found"))
+    }
+}
+
 private fun call_ResultTestPay(): Result = Result(MRSS.call("ResultTestPay", "0.5", json {}))
 
 private fun call_SimilarPanel(tests: Set<String>): Result = Result(MRSS.call("SimilarPanel", "0.5", json {
+    add("ResultTest", array { tests.forEach { add(it) } })
+}))
+
+private fun call_TestDxView(tests: Set<String>): Result = Result(MRSS.call("TestDxView", "0.5", json {
     add("ResultTest", array { tests.forEach { add(it) } })
 }))
