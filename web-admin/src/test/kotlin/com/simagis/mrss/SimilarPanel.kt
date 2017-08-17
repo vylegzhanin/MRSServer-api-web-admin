@@ -7,7 +7,7 @@ package com.simagis.mrss
 fun main(args: Array<String>) {
     val request = json {
         add("ResultTest", array {
-            add("B514")
+            add("B329")
         })
     }
     println(request)

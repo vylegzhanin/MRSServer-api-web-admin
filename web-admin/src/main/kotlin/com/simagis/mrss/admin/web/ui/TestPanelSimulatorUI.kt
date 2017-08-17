@@ -280,26 +280,28 @@ private val percentFormat = DecimalFormat("#%")
 
 private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     setSizeUndefined()
-    val details = gridOf("BestMatchPanelDetails")
-            ?.apply {
-                setWidth(42f, Sizeable.Unit.EM)
-                if (heightByRows > 8) {
-                    heightByRows = 8.0
-                }
+    val scalars = scalars()
+    val matchFound = scalars["MatchFound"] as? Boolean ?: false
+    val details = when {
+        matchFound -> gridOf("BestMatchPanelDetails")?.apply {
+            setWidth(42f, Sizeable.Unit.EM)
+            if (heightByRows > 8) {
+                heightByRows = 8.0
             }
+        }
+        else -> null
+    }
 
     if (details != null) {
-        val scalars = scalars()
+        val match = scalars["Match"] as? Double
+        val bestMatchPanel = scalars["BestMatchPanel"] as? String
+        val bestMatchPanelName = scalars["BestMatchPanelName"] as? String
         addComponent(Label().apply {
             addStyleName(ValoTheme.LABEL_BOLD)
             contentMode = ContentMode.HTML
             //language=HTML
-            value = "<strong>Panel Similarity: %s</strong>, Most Similar Panel:".format(
-                    (scalars["Match"] as? Double)?.let { percentFormat.format(it) }
-            )
+            value = "<strong>Similar Panel:</strong>"
         })
-        val bestMatchPanel = scalars["BestMatchPanel"] as? String
-        val bestMatchPanelName = scalars["BestMatchPanelName"] as? String
         details.caption = "Most Similar Panel: $bestMatchPanel | $bestMatchPanelName"
         addComponent(PopupView("<strong>$bestMatchPanel | $bestMatchPanelName</strong>", VerticalLayout().apply {
             setWidth(100f, Sizeable.Unit.PERCENTAGE)
@@ -310,8 +312,17 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
             setSizeUndefined()
             isHideOnMouseOut = false
         })
+        addComponent(Label().apply {
+            addStyleName(ValoTheme.LABEL_BOLD)
+            contentMode = ContentMode.HTML
+            //language=HTML
+            value = "(<strong>%s</strong> similarity)".format(match?.let { percentFormat.format(it) }
+        )
+        })
     } else {
-        addComponent(Label("Similar panel not found"))
+        addComponent(Label().apply {
+            addStyleName(ValoTheme.LABEL_BOLD)
+        })
     }
 }
 
