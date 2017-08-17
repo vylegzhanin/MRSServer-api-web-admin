@@ -21,6 +21,7 @@ import com.vaadin.ui.*
 import com.vaadin.ui.renderers.NumberRenderer
 import com.vaadin.ui.renderers.Renderer
 import com.vaadin.ui.themes.ValoTheme
+import org.intellij.lang.annotations.Language
 import java.text.DecimalFormat
 import javax.servlet.annotation.WebServlet
 import kotlin.concurrent.thread
@@ -296,12 +297,7 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
         val match = scalars["Match"] as? Double
         val bestMatchPanel = scalars["BestMatchPanel"] as? String
         val bestMatchPanelName = scalars["BestMatchPanelName"] as? String
-        addComponent(Label().apply {
-            addStyleName(ValoTheme.LABEL_BOLD)
-            contentMode = ContentMode.HTML
-            //language=HTML
-            value = "<strong>Similar Panel:</strong>"
-        })
+        addComponent("<strong>Similar Panel:</strong>".toBoldLabel())
         details.caption = "Most Similar Panel: $bestMatchPanel | $bestMatchPanelName"
         addComponent(PopupView("<strong>$bestMatchPanel | $bestMatchPanelName</strong>", VerticalLayout().apply {
             setWidth(100f, Sizeable.Unit.PERCENTAGE)
@@ -312,13 +308,9 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
             setSizeUndefined()
             isHideOnMouseOut = false
         })
-        addComponent(Label().apply {
-            addStyleName(ValoTheme.LABEL_BOLD)
-            contentMode = ContentMode.HTML
-            //language=HTML
-            value = "(<strong>%s</strong> similarity)".format(match?.let { percentFormat.format(it) }
-        )
-        })
+        addComponent("(<strong>%s</strong> similarity)"
+                .format(match?.let { percentFormat.format(it) })
+                .toBoldLabel())
     } else {
         addComponent(Label().apply {
             addStyleName(ValoTheme.LABEL_BOLD)
@@ -329,23 +321,28 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
 private fun Result.toDiagnosticCodesView() = VerticalLayout().apply {
     setSizeFull()
     setMargin(false)
-    val details = gridOf("TestDxPay")
-            ?.apply {
-                caption = null
-                setSizeFull()
-            }
+    val scalars = scalars()
+    val matchFound = scalars["MatchFound"] as? Boolean ?: false
+    val details = when {
+        matchFound -> gridOf("TestDxPay")?.apply {
+            caption = null
+            setSizeFull()
+        }
+        else -> null
+    }
+
+    val msg = scalars["Msg"] as? String ?: "Commonly used diagnosis codes for selected test composition:"
+    addComponent(msg.toBoldLabel())
 
     if (details != null) {
-        addComponent(Label().apply {
-            addStyleName(ValoTheme.LABEL_BOLD)
-            contentMode = ContentMode.HTML
-            //language=HTML
-            value = "Commonlty used diagnosis codes for selected test composition"
-        })
         addComponentsAndExpand(details)
-    } else {
-        addComponent(Label("Diagnosis codes not found"))
     }
+}
+
+private @Language("HTML") fun String.toBoldLabel(): Label = Label().apply {
+    addStyleName(ValoTheme.LABEL_BOLD)
+    contentMode = ContentMode.HTML
+    value = this@toBoldLabel
 }
 
 private fun call_ResultTestPay(): Result = Result(MRSS.call("ResultTestPay", "0.5", json {}))
