@@ -4,6 +4,7 @@ import com.simagis.mrss.MRSS
 import com.simagis.mrss.admin.web.ui.ptp.Details
 import com.simagis.mrss.admin.web.ui.ptp.Result
 import com.simagis.mrss.admin.web.ui.ptp.gridOf
+import com.simagis.mrss.admin.web.ui.ptp.setupColumnsDefault
 import com.simagis.mrss.array
 import com.simagis.mrss.json
 import com.vaadin.annotations.Push
@@ -19,6 +20,7 @@ import com.vaadin.server.VaadinSession
 import com.vaadin.shared.Registration
 import com.vaadin.shared.ui.ContentMode
 import com.vaadin.ui.*
+import com.vaadin.ui.renderers.HtmlRenderer
 import com.vaadin.ui.renderers.NumberRenderer
 import com.vaadin.ui.renderers.Renderer
 import com.vaadin.ui.themes.ValoTheme
@@ -285,7 +287,25 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
     val scalars = scalars()
     val matchFound = scalars["MatchFound"] as? Boolean ?: false
     val details = when {
-        matchFound -> gridOf("BestMatchPanelDetails")?.apply {
+        matchFound -> gridOf(
+                name = "BestMatchPanelDetails",
+                setupColumns = {
+                    setupColumnsDefault(it)
+                    with(getColumn("Match")) {
+                        isHidden = true
+                    }
+
+                    with(addColumn({
+                        when (it["Match"]) {
+                            true -> VaadinIcons.CHECK.html
+                            else -> ""
+                        }
+                    }, HtmlRenderer())) {
+                        caption = "Match"
+                        isSortable = false
+                    }
+                }
+        )?.apply {
             setWidth(42f, Sizeable.Unit.EM)
             if (heightByRows > 8) {
                 heightByRows = 8.0
