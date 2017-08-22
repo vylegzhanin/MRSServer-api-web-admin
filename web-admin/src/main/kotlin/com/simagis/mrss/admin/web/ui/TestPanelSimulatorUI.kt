@@ -17,7 +17,6 @@ import com.vaadin.server.Sizeable
 import com.vaadin.server.VaadinRequest
 import com.vaadin.server.VaadinServlet
 import com.vaadin.server.VaadinSession
-import com.vaadin.shared.Registration
 import com.vaadin.shared.ui.ContentMode
 import com.vaadin.ui.*
 import com.vaadin.ui.renderers.HtmlRenderer
@@ -70,9 +69,9 @@ class TestPanelSimulatorUI : UI() {
                     fun updateTotals() {
                         //language=HTML
                         totals.value = """
-                            <strong>Totals</strong>:
+                            <strong>Panel Summary</strong>:
                                     Expect Fee - <strong>%s</strong>,
-                                    Expected Value - <strong>%s</strong>"""
+                                    Estimated Value - <strong>%s</strong>"""
                                 .format(
                                         dollarFormat.format(testDataProvider.items.sumByDouble { it.expectFee ?: 0.0 }),
                                         dollarFormat.format(testDataProvider.items.sumByDouble { it.expectValue ?: 0.0 })
@@ -342,6 +341,7 @@ private fun Result.toSimilarPanelView() = HorizontalLayout().apply {
 private fun Result.toDiagnosticCodesView() = VerticalLayout().apply {
     setSizeFull()
     setMargin(false)
+    val testDxPay = asList("TestDxPay")
     val details = gridOf("TestDxPay")?.apply {
         caption = null
         setSizeFull()
@@ -351,11 +351,11 @@ private fun Result.toDiagnosticCodesView() = VerticalLayout().apply {
     val matchFound = scalars["MatchFound"] as? Boolean ?: false
     val msg = scalars["Msg"] as? String ?: "Commonly used diagnosis codes for selected test composition:"
     addComponent(msg.toBoldLabel().apply {
-        if (!matchFound && details != null) {
-            var registration: Registration? = null
-            registration = addContextClickListener {
-                registration?.remove()
-                addComponentsAndExpand(details)
+        if (!matchFound) {
+            addContextClickListener {
+                Notification.show(msg, "TestDxPay.size: ${testDxPay.size}", Notification.Type.HUMANIZED_MESSAGE)
+                if (details != null && !details.isAttached)
+                    addComponentsAndExpand(details)
             }
         }
     })
