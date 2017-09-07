@@ -3,6 +3,7 @@ package com.simagis.mrss.admin.web.ui
 import com.simagis.mrss.MRSS
 import com.simagis.mrss.admin.web.ui.ptp.*
 import com.simagis.mrss.json
+import com.vaadin.annotations.Theme
 import com.vaadin.annotations.Title
 import com.vaadin.annotations.VaadinServletConfiguration
 import com.vaadin.data.provider.ListDataProvider
@@ -24,6 +25,7 @@ import javax.servlet.annotation.WebServlet
 private const val appCaption = "Test Panels View (API version 0.5 - Prototype)"
 
 @Title(appCaption)
+@Theme("facebook-valo")
 class TestPanelsViewUI : UI() {
     override fun init(request: VaadinRequest) {
         content = VerticalLayout().apply {
